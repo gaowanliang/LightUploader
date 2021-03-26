@@ -1,0 +1,9 @@
+.history
+config.json
+temp.torrent
+.goreleaser.yml
+dist
+.idea
+info
+*.json
+*.exe
