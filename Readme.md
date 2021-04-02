@@ -4,7 +4,7 @@
 
 
 - 支持 国际版, 个人版(家庭版), ~~中国版(世纪互联)~~.
-- ~~支持上传文件和文件夹到指定目录,并保持上传前的目录结构.~~
+- ~~支持上传文件和文件夹到指定目录,并~~ 保持上传前的目录结构.
 - 支持命令参数使用, 方便外部程序调用.
 - 支持自定义上传分块大小.
 - 支持多线程上传(多文件同时上传).
@@ -36,7 +36,7 @@ OneDriveUploader -a "url" -v 2
 ```
 
 ## 使用
-```bash
+```
 Usage of OneDriveUploader:
   -a string
         // 初始化授权
@@ -78,10 +78,16 @@ Usage of OneDriveUploader:
         // 跳过上传网盘中已存在的同名文件. (默认不跳过)
         Skip exist file on remote.
 
+  -tgbot string
+        //使用Telegram机器人实时监控上传，此处需填写机器人的access token，形如123456789:xxxxxxxxx，输入时需使用双引号包裹
+  -uid string
+        // 使用Telegram机器人实时监控上传，此处需填写接收人的userID，形如123456789
+  -v int
+        // 选择版本，其中0为国际版，1为个人版(家庭版)，默认为0
 ```
 
 ## 配置
-```json
+```jsonc
 {
     // 授权令牌
     "RefreshToken": "1234564567890ABCDEF",
@@ -118,7 +124,7 @@ OneDriveUploader -c xxx.json -s "Download" -r "Test"
 OneDriveUploader -c xxx.json -t 10 -s "Download" 
 
 # 将同目录下的 Download 文件夹上传到 OneDrive 网盘根目录中, 使用 10 线程，同时使用 Telegram Bot 实时监控上传进度
-OneDriveUploader -c xxx.json -t 10 -s "Download" -tgbot "bot123456:xxxxxxxx" -uid 123456789
+OneDriveUploader -c xxx.json -t 10 -s "Download" -tgbot "123456:xxxxxxxx" -uid 123456789
 
 # 将同目录下的 Download 文件夹上传到 OneDrive 网盘根目录中, 使用 15 线程, 并设置分块大小为 20M
 OneDriveUploader -c xxx.json -t 15 -b 20 -s "Download" 

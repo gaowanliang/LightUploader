@@ -21,16 +21,19 @@ import (
 	"github.com/gosuri/uilive"
 )
 
-var bearerToken = ""
-var userID = ""
-
 func ApplyForNewPass(url string, ms int) string {
 	return httpLocal.NewPassCheck(url, ms)
 }
 
-func Upload(infoPath string, filePath string, threads int, sendMsg func() func(text string), locText func(text string) string) {
-	userID, bearerToken = httpLocal.GetMyIDAndBearer(infoPath)
-	username := strings.ReplaceAll(filepath.Base(infoPath), ".json", "")
+func Upload(infoPath string, filePath string, threads int, sendMsg func() (func(text string), string, string), locText func(text string) string) {
+
+	programPath, err := filepath.Abs(filepath.Dir(infoPath))
+	if err != nil {
+		log.Panic(err)
+	}
+	infoPath = filepath.Base(infoPath)
+	infoPath = filepath.Join(programPath, infoPath)
+
 	// restoreOption := "orig"
 	oldDir, err := os.Getwd()
 	if err != nil {
@@ -56,7 +59,7 @@ func Upload(infoPath string, filePath string, threads int, sendMsg func() func(t
 	} else {
 		restore(restoreSrvc, fileInfoToUpload, threads)
 	}*/
-	restore(restoreSrvc, fileInfoToUpload, threads, sendMsg, locText, username)
+	restore(restoreSrvc, fileInfoToUpload, threads, sendMsg, locText, infoPath)
 	err = os.Chdir(oldDir)
 	if err != nil {
 		log.Panic(err)
@@ -67,7 +70,7 @@ func changeBlockSize(MB int) {
 }
 
 //Restore to original location
-func restore(restoreSrvc *upload.RestoreService, filesToRestore map[string]fileutil.FileInfo, threads int, sendMsg func() func(text string), locText func(text string) string, username string) {
+func restore(restoreSrvc *upload.RestoreService, filesToRestore map[string]fileutil.FileInfo, threads int, sendMsg func() (func(text string), string, string), locText func(text string) string, infoPath string) {
 	var wg sync.WaitGroup
 	pool := make(chan struct{}, threads)
 	for filePath, fileInfo := range filesToRestore {
@@ -78,19 +81,29 @@ func restore(restoreSrvc *upload.RestoreService, filesToRestore map[string]fileu
 			defer func() {
 				<-pool
 			}()
-			temp := sendMsg()
-			temp("`" + filePath + "`" + "开始上传至OneDrive")
-			_, err := restoreSrvc.SimpleUploadToOriginalLoc(userID, bearerToken, "rename", filePath, fileInfo, temp, locText, username)
-			if err != nil {
-				log.Panicf("Failed to Restore :%v", err)
+			temps, botKey, iUserID := sendMsg()
+			var iSendMsg func(string)
+			tip := "`" + filePath + "`" + "开始上传至OneDrive"
+			if botKey != "" && iUserID != "" {
+				iSendMsg = botSend(botKey, iUserID, tip)
 			}
+			temp := func(text string) {
+				temps(text)
+				if botKey != "" && iUserID != "" {
+					iSendMsg(text)
+				}
+			}
+			temp(tip)
+			userID, bearerToken := httpLocal.GetMyIDAndBearer(infoPath)
+			username := strings.ReplaceAll(filepath.Base(infoPath), ".json", "")
+			restoreSrvc.SimpleUploadToOriginalLoc(userID, bearerToken, "rename", filePath, fileInfo, temp, locText, username)
+
 			//printResp(resp)
-			temp("close")
+			defer temp("close")
 		}(filePath, fileInfo)
 	}
 	wg.Wait()
-	temp := sendMsg()
-	defer temp("目标文件夹上传至OneDrive完成")
+
 }
 
 func printResp(resp interface{}) {
@@ -106,7 +119,7 @@ func printResp(resp interface{}) {
 }
 
 //Restore to Alternate location 还原到备用位置
-func restoreToAltLoc(restoreSrvc *upload.RestoreService, filesToRestore map[string]fileutil.FileInfo, sendMsg func() func(text string), locText func(text string) string) {
+func restoreToAltLoc(restoreSrvc *upload.RestoreService, filesToRestore map[string]fileutil.FileInfo, sendMsg func() func(text string), locText func(text string) string, infoPath string) {
 	rootFolder := fileutil.GetAlternateRootFolder()
 	var wg sync.WaitGroup
 	pool := make(chan struct{}, 10)
@@ -122,10 +135,10 @@ func restoreToAltLoc(restoreSrvc *upload.RestoreService, filesToRestore map[stri
 			temp := sendMsg()
 			temp(filePath + "开始上传至OneDrive")
 			us := ""
-			_, err := restoreSrvc.SimpleUploadToAlternateLoc(userID, bearerToken, "rename", rootFilePath, fileItem, temp, locText, us)
-			if err != nil {
-				log.Panicf("Failed to Restore :%v", err)
-			}
+			userID, bearerToken := httpLocal.GetMyIDAndBearer(infoPath)
+			//username := strings.ReplaceAll(filepath.Base(infoPath), ".json", "")
+			restoreSrvc.SimpleUploadToAlternateLoc(userID, bearerToken, "rename", rootFilePath, fileItem, temp, locText, us)
+
 		}()
 		wg.Wait()
 		// fmt.Println(respStr)
@@ -138,7 +151,7 @@ func oldFunc(a string) string {
 
 func botSend(botKey string, iuserID string, initText string) func(string) {
 	var message_id = int64(0)
-	resp, err := http.Get(fmt.Sprintf("https://api.telegram.org/%s/sendMessage?chat_id=%s&parse_mode=MarkdownV2&text=%s", botKey, iuserID, url.QueryEscape(initText)))
+	resp, err := http.Get(fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage?chat_id=%s&parse_mode=MarkdownV2&text=%s", botKey, iuserID, url.QueryEscape(initText)))
 	if err != nil {
 		log.Panic(err)
 	}
@@ -156,7 +169,15 @@ func botSend(botKey string, iuserID string, initText string) func(string) {
 		log.Panicf("Telegram Send Error:%s", description)
 	}
 	return func(text string) {
-		resp, err = http.Get(fmt.Sprintf("https://api.telegram.org/%s/editMessageText?chat_id=%s&parse_mode=MarkdownV2&message_id=%d&text=%s", botKey, iuserID, message_id, url.QueryEscape(text)))
+		if text == "close" {
+			resp, err = http.Get(fmt.Sprintf("https://api.telegram.org/bot%s/deleteMessage?chat_id=%s&message_id=%d", botKey, iuserID, message_id))
+			if err != nil {
+				log.Panic(err)
+			}
+			defer resp.Body.Close()
+			return
+		}
+		resp, err = http.Get(fmt.Sprintf("https://api.telegram.org/bot%s/editMessageText?chat_id=%s&parse_mode=MarkdownV2&message_id=%d&text=%s", botKey, iuserID, message_id, url.QueryEscape(text)))
 		if err != nil {
 			log.Panic(err)
 		}
@@ -192,8 +213,8 @@ func main() {
 	flag.StringVar(&folder, "f", "", "欲上传的文件/文件夹")
 	flag.IntVar(&thread, "t", 3, "线程数，默认为3")
 	flag.IntVar(&block, "b", 10, "自定义上传分块大小, 可以提高网络吞吐量, 受限于磁盘性能和网络速度，默认为 10 (单位MB)")
-	flag.StringVar(&botKey, "tgbot", "", "使用Telegram机器人实时监控上传，此处需填写机器人的access token，形如bot123456789:xxxxxxxxx，输入时需使用双引号包裹")
-	flag.StringVar(&iuserID, "uid", "", "使用Telegram机器人实时监控上传，此处需填写接收人的userID的，形如123456789")
+	flag.StringVar(&botKey, "tgbot", "", "使用Telegram机器人实时监控上传，此处需填写机器人的access token，形如123456789:xxxxxxxxx，输入时需使用双引号包裹")
+	flag.StringVar(&iuserID, "uid", "", "使用Telegram机器人实时监控上传，此处需填写接收人的userID，形如123456789")
 
 	// 从arguments中解析注册的flag。必须在所有flag都注册好而未访问其值时执行。未注册却使用flag -help时，会返回ErrHelp。
 
@@ -208,13 +229,17 @@ func main() {
 			sendMsg = botSend(botKey, iuserID, fmt.Sprintf("`%s` 开始上传", folder))
 		}
 
-		Upload(strings.ReplaceAll(configFile, "\\", "/"), strings.ReplaceAll(folder, "\\", "/"), thread, func() func(text string) {
-			return func(text string) {
-				_, _ = fmt.Fprintf(writer, "%s\n", text)
-				if botKey != "" && iuserID != "" {
-					sendMsg(text)
-				}
+		Upload(strings.ReplaceAll(configFile, "\\", "/"), strings.ReplaceAll(folder, "\\", "/"), thread, func() (func(text string), string, string) {
+			if botKey != "" && iuserID != "" {
+				return func(text string) {
+					_, _ = fmt.Fprintf(writer, "%s\n", text)
+				}, botKey, iuserID
+			} else {
+				return func(text string) {
+					_, _ = fmt.Fprintf(writer, "%s\n", text)
+				}, "", ""
 			}
+
 		}, func(text string) string {
 			return oldFunc(text)
 		})
@@ -233,3 +258,9 @@ func main() {
 	// 打印
 	//fmt.Printf("username=%v password=%v host=%v port=%v", username, password, host, port)
 }
+
+/*
+SET CGO_ENABLED=0
+SET GOOS=linux
+SET GOARCH=amd64
+*/

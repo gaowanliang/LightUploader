@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"net/http"
 	"main/fileutil"
+	"net/http"
 	"runtime/debug"
 	"strconv"
 	"time"
@@ -16,11 +16,11 @@ const (
 	uploadURLKey      = "uploadUrl"
 )
 
-func (rs *RestoreService) recoverableUpload(userID string, bearerToken string, conflictOption string, filePath string, fileInfo fileutil.FileInfo, sendMsg func(text string), locText func(text string) string, username string) ([]map[string]interface{}, error) {
+func (rs *RestoreService) recoverableUpload(userID string, bearerToken string, conflictOption string, filePath string, fileInfo fileutil.FileInfo, sendMsg func(text string), locText func(text string) string, username string) []map[string]interface{} {
 	//1. Get recoverable upload session for the current file path 获取当前文件路径的可压缩上载会话
 	uploadSessionData, err := rs.getUploadSession(userID, bearerToken, conflictOption, filePath)
 	if err != nil {
-		return nil, err
+		log.Panicf("Failed to Restore :%v", err)
 	}
 
 	//2. Get the upload url returned as a response from the recoverable upload session above. 从上面的可压缩上载会话获取作为响应返回的上载url。
@@ -29,7 +29,7 @@ func (rs *RestoreService) recoverableUpload(userID string, bearerToken string, c
 	//3. Get the startOffset list for the file 获取文件的startOffset列表
 	startOffsetLst, err := fileutil.GetFileOffsetStash(filePath)
 	if err != nil {
-		return nil, err
+		log.Panicf("Failed to Restore :%v", err)
 	}
 
 	//4. Loop over the file start offset list to read files in chunk and upload in onedrive 在文件开始偏移量列表上循环以读取块中的文件并在onedrive中上载
@@ -52,12 +52,12 @@ func (rs *RestoreService) recoverableUpload(userID string, bearerToken string, c
 		//4a. Get the bytes for the file based on the offset 根据偏移量获取文件的字节数
 		err := fileutil.GetFilePartInBytes(filePartInBytes, filePath, sOffset)
 		if err != nil {
-			return nil, err
+			log.Panicf("Failed to Restore :%v", err)
 		}
 		if i != 0 {
-			sendMsg(fmt.Sprintf("正在向OneDrive账户 `%s` 上传 `%s` *『%d/%d』*  速度:`%s/s` 已耗时: `%d s`", username, filePath, i, len(startOffsetLst), byte2Readable(float64(fileutil.GetDefaultChunkSize())/float64(time.Now().UnixNano()-timeUnix)*float64(1000000000)), time.Now().Unix()-startTime))
+			sendMsg(fmt.Sprintf("正在向OneDrive账户 `%s` 上传 `%s` *『%d/%d』*  \n速度:`%s/s` \n已耗时: `%d s`", username, filePath, i, len(startOffsetLst), byte2Readable(float64(fileutil.GetDefaultChunkSize())/float64(time.Now().UnixNano()-timeUnix)*float64(1000000000)), time.Now().Unix()-startTime))
 		} else {
-			sendMsg(fmt.Sprintf("正在向OneDrive账户 `%s` 上传 `%s` *『%d/%d』*  速度:`----` 已耗时: `%d s`", username, filePath, i, len(startOffsetLst), time.Now().Unix()-startTime))
+			sendMsg(fmt.Sprintf("正在向OneDrive账户 `%s` 上传 `%s` *『%d/%d』*  \n速度:`----` \n已耗时: `%d s`", username, filePath, i, len(startOffsetLst), time.Now().Unix()-startTime))
 		}
 
 		timeUnix = time.Now().UnixNano()
@@ -65,7 +65,7 @@ func (rs *RestoreService) recoverableUpload(userID string, bearerToken string, c
 		resp, err := rs.uploadFilePart(uploadURL, filePath, bearerToken, *filePartInBytes, sOffset, isLastChunk)
 
 		if err != nil {
-			return nil, err
+			log.Panicf("Failed to Restore :%v", err)
 		}
 		respMap := make(map[string]interface{})
 		err = json.NewDecoder(resp.Body).Decode(&respMap)
@@ -80,7 +80,7 @@ func (rs *RestoreService) recoverableUpload(userID string, bearerToken string, c
 		debug.FreeOSMemory()
 	}
 	sendMsg("close")
-	return uploadResp, nil
+	return uploadResp
 }
 
 //Returns the restore session url for part file upload
