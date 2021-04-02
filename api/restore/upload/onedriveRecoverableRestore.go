@@ -62,11 +62,19 @@ func (rs *RestoreService) recoverableUpload(userID string, bearerToken string, c
 
 		timeUnix = time.Now().UnixNano()
 		//3b. make a call to the upload url with the file part based on the offset. 使用基于偏移量的文件部分调用上载url。
-		resp, err := rs.uploadFilePart(uploadURL, filePath, bearerToken, *filePartInBytes, sOffset, isLastChunk)
-
-		if err != nil {
-			log.Panicf("Failed to Restore :%v", err)
+		var resp *http.Response
+		for errCount := 1; errCount < 10; errCount++ {
+			resp, err = rs.uploadFilePart(uploadURL, filePath, bearerToken, *filePartInBytes, sOffset, isLastChunk)
+			if err != nil {
+				sendMsg(fmt.Sprintf("向OneDrive账户 `%s` 上传 `%s` 时出现连接问题，正在重试，当前为第%d次重试", username, filePath, errCount))
+			} else {
+				break
+			}
 		}
+		if err != nil {
+			log.Fatalf("Failed to Load Files from source :%v", err)
+		}
+
 		respMap := make(map[string]interface{})
 		err = json.NewDecoder(resp.Body).Decode(&respMap)
 		if err != nil {
