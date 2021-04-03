@@ -4,7 +4,7 @@
 
 
 - 支持 国际版, 个人版(家庭版), ~~中国版(世纪互联)~~.
-- ~~支持上传文件和文件夹到指定目录,并~~ 保持上传前的目录结构.
+- 支持上传文件和文件夹到指定目录,并保持上传前的目录结构.
 - 支持命令参数使用, 方便外部程序调用.
 - 支持自定义上传分块大小.
 - 支持多线程上传(多文件同时上传).
@@ -53,7 +53,6 @@ Usage of OneDriveUploader:
         // 上传单个文件时,在网盘中重命名
         Rename file on upload to remote.
 
-  //此参数未设计，暂不可用
   -r string
         // 上传到网盘中的某个目录, 默认: 根目录
         Upload to reomte path.
@@ -112,30 +111,27 @@ Usage of OneDriveUploader:
 OneDriveUploader -c xxx.json -f "mm00.jpg"
 
 # 将同目录下的 mm00.jpg 文件上传到 OneDrive 网盘根目录,并改名为 mm01.jpg(暂不可用)
-OneDriveUploader  -c xxx.json -s "mm00.jpg" -n "mm01.jpg"
+OneDriveUploader  -c xxx.json -f "mm00.jpg" -n "mm01.jpg"
 
 # 将同目录下的 Download 文件夹上传到 OneDrive 网盘根目录
-OneDriveUploader -c xxx.json -s "Download" 
+OneDriveUploader -c xxx.json -f "Download" 
 
-# 将同目录下的 Download 文件夹上传到 OneDrive 网盘Test目录中(暂不可用)
-OneDriveUploader -c xxx.json -s "Download" -r "Test"
+# 将同目录下的 Download 文件夹上传到 OneDrive 网盘Test目录中
+OneDriveUploader -c xxx.json -f "Download" -r "Test"
 
 # 将同目录下的 Download 文件夹上传到 OneDrive 网盘根目录中, 使用 10 线程
-OneDriveUploader -c xxx.json -t 10 -s "Download" 
+OneDriveUploader -c xxx.json -t 10 -f "Download" 
 
 # 将同目录下的 Download 文件夹上传到 OneDrive 网盘根目录中, 使用 10 线程，同时使用 Telegram Bot 实时监控上传进度
-OneDriveUploader -c xxx.json -t 10 -s "Download" -tgbot "123456:xxxxxxxx" -uid 123456789
+OneDriveUploader -c xxx.json -t 10 -f "Download" -tgbot "123456:xxxxxxxx" -uid 123456789
 
 # 将同目录下的 Download 文件夹上传到 OneDrive 网盘根目录中, 使用 15 线程, 并设置分块大小为 20M
-OneDriveUploader -c xxx.json -t 15 -b 20 -s "Download" 
+OneDriveUploader -c xxx.json -t 15 -b 20 -f "Download" 
 
 # 将同目录下的 Download 文件夹上传到 OneDrive 网盘Test目录中, 使用配置文件中的线程参数和分块大小参数(暂不可用)
-OneDriveUploader -f -c "/urs/local/auth.json" -s "Download" -r "Test"
+OneDriveUploader -c "/urs/local/auth.json" -f "Download" -r "Test" -force
 
 # 将同目录下的 Download 文件夹上传到 OneDrive 网盘Test目录中, 使用配置文件中的线程参数和分块大小参数，并跳过上传网盘中已存在的同名文件(暂不可用)
-OneDriveUploader -f -c "/urs/local/auth.json" -skip -s "Download" -r "Test"
+OneDriveUploader -c "/urs/local/auth.json" -skip -f "Download" -r "Test"
 ```
 
-## 注意
-- ~~多次尝试后, 无失败的上传文件. 退出码为 0 .~~
-- ~~最终还有失败的上传文件会详细列出上传失败项. 退出码为 1.~~

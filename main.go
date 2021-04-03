@@ -25,7 +25,7 @@ func ApplyForNewPass(url string, ms int) string {
 	return httpLocal.NewPassCheck(url, ms)
 }
 
-func Upload(infoPath string, filePath string, threads int, sendMsg func() (func(text string), string, string), locText func(text string) string) {
+func Upload(infoPath string, filePath string, targetFolder string, threads int, sendMsg func() (func(text string), string, string), locText func(text string) string) {
 
 	programPath, err := filepath.Abs(filepath.Dir(infoPath))
 	if err != nil {
@@ -59,7 +59,7 @@ func Upload(infoPath string, filePath string, threads int, sendMsg func() (func(
 	} else {
 		restore(restoreSrvc, fileInfoToUpload, threads)
 	}*/
-	restore(restoreSrvc, fileInfoToUpload, threads, sendMsg, locText, infoPath)
+	restore(restoreSrvc, fileInfoToUpload, targetFolder, threads, sendMsg, locText, infoPath)
 	err = os.Chdir(oldDir)
 	if err != nil {
 		log.Panic(err)
@@ -70,7 +70,7 @@ func changeBlockSize(MB int) {
 }
 
 //Restore to original location
-func restore(restoreSrvc *upload.RestoreService, filesToRestore map[string]fileutil.FileInfo, threads int, sendMsg func() (func(text string), string, string), locText func(text string) string, infoPath string) {
+func restore(restoreSrvc *upload.RestoreService, filesToRestore map[string]fileutil.FileInfo, targetFolder string, threads int, sendMsg func() (func(text string), string, string), locText func(text string) string, infoPath string) {
 	var wg sync.WaitGroup
 	pool := make(chan struct{}, threads)
 	for filePath, fileInfo := range filesToRestore {
@@ -96,7 +96,7 @@ func restore(restoreSrvc *upload.RestoreService, filesToRestore map[string]fileu
 			temp(tip)
 			userID, bearerToken := httpLocal.GetMyIDAndBearer(infoPath)
 			username := strings.ReplaceAll(filepath.Base(infoPath), ".json", "")
-			restoreSrvc.SimpleUploadToOriginalLoc(userID, bearerToken, "rename", filePath, fileInfo, temp, locText, username)
+			restoreSrvc.SimpleUploadToOriginalLoc(userID, bearerToken, "rename", targetFolder, filePath, fileInfo, temp, locText, username)
 
 			//printResp(resp)
 			defer temp("close")
@@ -119,7 +119,7 @@ func printResp(resp interface{}) {
 }
 
 //Restore to Alternate location 还原到备用位置
-func restoreToAltLoc(restoreSrvc *upload.RestoreService, filesToRestore map[string]fileutil.FileInfo, sendMsg func() func(text string), locText func(text string) string, infoPath string) {
+func restoreToAltLoc(restoreSrvc *upload.RestoreService, filesToRestore map[string]fileutil.FileInfo, targetFolder string, sendMsg func() func(text string), locText func(text string) string, infoPath string) {
 	rootFolder := fileutil.GetAlternateRootFolder()
 	var wg sync.WaitGroup
 	pool := make(chan struct{}, 10)
@@ -137,7 +137,7 @@ func restoreToAltLoc(restoreSrvc *upload.RestoreService, filesToRestore map[stri
 			us := ""
 			userID, bearerToken := httpLocal.GetMyIDAndBearer(infoPath)
 			//username := strings.ReplaceAll(filepath.Base(infoPath), ".json", "")
-			restoreSrvc.SimpleUploadToAlternateLoc(userID, bearerToken, "rename", rootFilePath, fileItem, temp, locText, us)
+			restoreSrvc.SimpleUploadToAlternateLoc(userID, bearerToken, "rename", targetFolder, rootFilePath, fileItem, temp, locText, us)
 
 		}()
 		wg.Wait()
@@ -197,6 +197,18 @@ func botSend(botKey string, iuserID string, initText string) func(string) {
 
 	}
 }
+
+func DirSize(path string) (int64, error) {
+	var size int64
+	err := filepath.Walk(path, func(_ string, info os.FileInfo, err error) error {
+		if !info.IsDir() {
+			size += info.Size()
+		}
+		return err
+	})
+	return size, err
+}
+
 func main() {
 	var codeURL string
 	var configFile string
@@ -206,6 +218,7 @@ func main() {
 	var iuserID string
 	var ms int
 	var block int
+	var targetFolder string
 	// StringVar用指定的名称、控制台参数项目、默认值、使用信息注册一个string类型flag，并将flag的值保存到p指向的变量
 	flag.StringVar(&codeURL, "a", "", "通过登录 https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=ad5e65fd-856d-4356-aefc-537a9700c137&response_type=code&redirect_uri=http://localhost/onedrive-login&response_mode=query&scope=offline_access%20User.Read%20Files.ReadWrite.All 后跳转的网址(输入网址时需要使用双引号包裹网址)")
 	flag.IntVar(&ms, "v", 0, "选择版本，其中0为国际版，1为个人版(家庭版)，默认为0")
@@ -215,6 +228,7 @@ func main() {
 	flag.IntVar(&block, "b", 10, "自定义上传分块大小, 可以提高网络吞吐量, 受限于磁盘性能和网络速度，默认为 10 (单位MB)")
 	flag.StringVar(&botKey, "tgbot", "", "使用Telegram机器人实时监控上传，此处需填写机器人的access token，形如123456789:xxxxxxxxx，输入时需使用双引号包裹")
 	flag.StringVar(&iuserID, "uid", "", "使用Telegram机器人实时监控上传，此处需填写接收人的userID，形如123456789")
+	flag.StringVar(&targetFolder, "r", "", "设置上传的目录")
 
 	// 从arguments中解析注册的flag。必须在所有flag都注册好而未访问其值时执行。未注册却使用flag -help时，会返回ErrHelp。
 
@@ -224,12 +238,18 @@ func main() {
 		startTime := time.Now().Unix()
 		writer := uilive.New()
 		writer.Start()
+		size, err := DirSize(folder)
+		if err != nil {
+			log.Panic(err)
+		}
+		_, _ = fmt.Fprintf(writer, "`%s` 开始上传，大小: `%s`", folder, fileutil.Byte2Readable(float64(size)))
+
 		var sendMsg func(string)
 		if botKey != "" && iuserID != "" {
-			sendMsg = botSend(botKey, iuserID, fmt.Sprintf("`%s` 开始上传", folder))
+			sendMsg = botSend(botKey, iuserID, fmt.Sprintf("`%s` 开始上传，大小: `%s`", folder, fileutil.Byte2Readable(float64(size))))
 		}
 
-		Upload(strings.ReplaceAll(configFile, "\\", "/"), strings.ReplaceAll(folder, "\\", "/"), thread, func() (func(text string), string, string) {
+		Upload(strings.ReplaceAll(configFile, "\\", "/"), strings.ReplaceAll(folder, "\\", "/"), targetFolder, thread, func() (func(text string), string, string) {
 			if botKey != "" && iuserID != "" {
 				return func(text string) {
 					_, _ = fmt.Fprintf(writer, "%s\n", text)
@@ -243,9 +263,11 @@ func main() {
 		}, func(text string) string {
 			return oldFunc(text)
 		})
-		_, _ = fmt.Fprintf(writer, "%s上传完成，耗时 %d 秒\n", folder, time.Now().Unix()-startTime)
+		cost := time.Now().Unix() - startTime
+		speed := fileutil.Byte2Readable(float64(size) / float64(cost))
+		_, _ = fmt.Fprintf(writer, "%s上传完成，耗时 %d 秒，平均上传速度 %s/s\n", folder, cost, speed)
 		if botKey != "" && iuserID != "" {
-			sendMsg(fmt.Sprintf("`%s`上传完成，耗时 %d 秒\n", folder, time.Now().Unix()-startTime))
+			sendMsg(fmt.Sprintf("`%s`上传完成，耗时 %d 秒，平均上传速度 `%s/s`", folder, cost, speed))
 		}
 	} else {
 		if codeURL == "" {
@@ -257,6 +279,7 @@ func main() {
 
 	// 打印
 	//fmt.Printf("username=%v password=%v host=%v port=%v", username, password, host, port)
+
 }
 
 /*

@@ -6,6 +6,7 @@ import (
 	"log"
 	"main/fileutil"
 	"net/http"
+	"path/filepath"
 	"runtime/debug"
 	"strconv"
 	"time"
@@ -16,9 +17,9 @@ const (
 	uploadURLKey      = "uploadUrl"
 )
 
-func (rs *RestoreService) recoverableUpload(userID string, bearerToken string, conflictOption string, filePath string, fileInfo fileutil.FileInfo, sendMsg func(text string), locText func(text string) string, username string) []map[string]interface{} {
+func (rs *RestoreService) recoverableUpload(userID string, bearerToken string, conflictOption string, targetFolder string, filePath string, fileInfo fileutil.FileInfo, sendMsg func(text string), locText func(text string) string, username string) []map[string]interface{} {
 	//1. Get recoverable upload session for the current file path 获取当前文件路径的可压缩上载会话
-	uploadSessionData, err := rs.getUploadSession(userID, bearerToken, conflictOption, filePath)
+	uploadSessionData, err := rs.getUploadSession(userID, bearerToken, conflictOption, targetFolder, filePath)
 	if err != nil {
 		log.Panicf("Failed to Restore :%v", err)
 	}
@@ -31,6 +32,12 @@ func (rs *RestoreService) recoverableUpload(userID string, bearerToken string, c
 	if err != nil {
 		log.Panicf("Failed to Restore :%v", err)
 	}
+	_size, err := fileutil.GetFileSize(filePath)
+	if err != nil {
+		log.Panicf("Failed to Restore :%v", err)
+	}
+	//log.Panicln(fileutil.Byte2Readable(size))
+	size := byte2Readable(float64(_size))
 
 	//4. Loop over the file start offset list to read files in chunk and upload in onedrive 在文件开始偏移量列表上循环以读取块中的文件并在onedrive中上载
 	var uploadResp []map[string]interface{}
@@ -39,6 +46,7 @@ func (rs *RestoreService) recoverableUpload(userID string, bearerToken string, c
 	timeUnix := time.Now().UnixNano()
 	var buffer = make([]byte, fileutil.GetDefaultChunkSize())
 	startTime := time.Now().Unix()
+
 	for i, sOffset := range startOffsetLst {
 		if i == lastChunkIndex {
 			lastChunkSize, err := fileutil.GetLatsChunkSizeInBytes(filePath)
@@ -55,9 +63,9 @@ func (rs *RestoreService) recoverableUpload(userID string, bearerToken string, c
 			log.Panicf("Failed to Restore :%v", err)
 		}
 		if i != 0 {
-			sendMsg(fmt.Sprintf("正在向OneDrive账户 `%s` 上传 `%s` *『%d/%d』*  \n速度:`%s/s` \n已耗时: `%d s`", username, filePath, i, len(startOffsetLst), byte2Readable(float64(fileutil.GetDefaultChunkSize())/float64(time.Now().UnixNano()-timeUnix)*float64(1000000000)), time.Now().Unix()-startTime))
+			sendMsg(fmt.Sprintf("正在向OneDrive账户 `%s` 上传 `%s`\n 大小:`%s` 已上传大小: `%s` 进度: *『%d/%d』*  \n速度:`%s/s` \n已耗时: `%d s`", username, filePath, size, byte2Readable(float64(fileutil.GetDefaultChunkSize())*float64(i)), i, len(startOffsetLst), byte2Readable(float64(fileutil.GetDefaultChunkSize())/float64(time.Now().UnixNano()-timeUnix)*float64(1000000000)), time.Now().Unix()-startTime))
 		} else {
-			sendMsg(fmt.Sprintf("正在向OneDrive账户 `%s` 上传 `%s` *『%d/%d』*  \n速度:`----` \n已耗时: `%d s`", username, filePath, i, len(startOffsetLst), time.Now().Unix()-startTime))
+			sendMsg(fmt.Sprintf("正在向OneDrive账户 `%s` 上传 `%s`\n 大小:`%s` 已上传大小: `%s` 进度: *『%d/%d』*  \n速度:`----` \n已耗时: `%d s`", username, filePath, size, "0", i, len(startOffsetLst), time.Now().Unix()-startTime))
 		}
 
 		timeUnix = time.Now().UnixNano()
@@ -92,8 +100,9 @@ func (rs *RestoreService) recoverableUpload(userID string, bearerToken string, c
 }
 
 //Returns the restore session url for part file upload
-func (rs *RestoreService) getUploadSession(userID string, bearerToken string, conflictOption string, filePath string) (map[string]interface{}, error) {
-	uploadSessionPath := fmt.Sprintf(uploadSessionPath, userID, filePath)
+func (rs *RestoreService) getUploadSession(userID string, bearerToken string, conflictOption string, targetFolder string, filePath string) (map[string]interface{}, error) {
+	targetPath := filepath.Join(targetFolder, filePath)
+	uploadSessionPath := fmt.Sprintf(uploadSessionPath, userID, targetPath)
 	uploadSessionData := make(map[string]interface{})
 	//Get the body for resemble upload session call.
 	body, err := getRessumableSessionBody(filePath, conflictOption)

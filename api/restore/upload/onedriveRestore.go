@@ -9,6 +9,7 @@ import (
 	httpLocal "main/graph/net/http"
 	"net/http"
 	"net/url"
+	"path/filepath"
 )
 
 const (
@@ -35,16 +36,17 @@ type RestoreService struct {
 //@bearerToken will be extracted as sent from the restore input xml
 //@filePath will be extracted from the file hierarchy the needs to be restored
 //@fileInfo it is the file info struct that contains the actual file reference and the size_type
-func (rs *RestoreService) SimpleUploadToOriginalLoc(userId string, bearerToken string, conflictOption string, filePath string, fileInfo fileutil.FileInfo, sendMsg func(text string), locText func(text string) string, username string) interface{} {
+func (rs *RestoreService) SimpleUploadToOriginalLoc(userId string, bearerToken string, conflictOption string, targetFolder string, filePath string, fileInfo fileutil.FileInfo, sendMsg func(text string), locText func(text string) string, username string) interface{} {
 	if fileInfo.SizeType == fileutil.SizeTypeLarge {
 		//For Large file type use resemble onedrive upload API
 		//log.Printf("Processing Large File: %s", filePath)
 		sendMsg(fmt.Sprintf("文件: `%s` 开始上传至OneDrive\n账户:`%s`\n文件超过4MB，进入大文件通道", filePath, username))
-		return rs.recoverableUpload(userId, bearerToken, conflictOption, filePath, fileInfo, sendMsg, locText, username)
+		return rs.recoverableUpload(userId, bearerToken, conflictOption, targetFolder, filePath, fileInfo, sendMsg, locText, username)
 	} else {
 		//log.Printf("Processing Small File: %s", filePath)
 		sendMsg(fmt.Sprintf("文件: `%s` 开始上传至OneDrive\n账户:`%s`\n文件小于4MB，进入小文件通道，上传中", filePath, username))
-		uploadPath := fmt.Sprintf(simpleUploadPath, userId, filePath)
+		targetPath := filepath.Join(targetFolder, filePath)
+		uploadPath := fmt.Sprintf(simpleUploadPath, userId, targetPath)
 		req, err := rs.NewRequest("PUT", uploadPath, getSimpleUploadHeader(bearerToken), fileInfo.FileData)
 		if err != nil {
 			log.Panicf("Failed to Restore :%v", err)
@@ -56,7 +58,16 @@ func (rs *RestoreService) SimpleUploadToOriginalLoc(userId string, bearerToken s
 		req.URL.RawQuery = q.Encode()
 
 		//Execute the request
-		resp, err := rs.Do(req)
+
+		var resp *http.Response
+		for errCount := 1; errCount < 10; errCount++ {
+			resp, err = rs.Do(req)
+			if err != nil {
+				sendMsg(fmt.Sprintf("向OneDrive账户 `%s` 上传 `%s` 时出现连接问题，正在重试，当前为第%d次重试", username, filePath, errCount))
+			} else {
+				break
+			}
+		}
 		if err != nil {
 			log.Panicf("Failed to Restore :%v", err)
 		}
@@ -81,10 +92,10 @@ func (rs *RestoreService) SimpleUploadToOriginalLoc(userId string, bearerToken s
 //@userId will be extracted as sent from the restore input xml
 //@filePath will be extracted from the file hierarchy the needs to be restored
 //@fileInfo it is the file info struct that contains the actual file reference and the size_type
-func (rs *RestoreService) SimpleUploadToAlternateLoc(altUserId string, bearerToken string, conflictOption string, filePath string, fileInfo fileutil.FileInfo, sendMsg func(text string), locText func(text string) string, username string) interface{} {
+func (rs *RestoreService) SimpleUploadToAlternateLoc(altUserId string, bearerToken string, targetFolder string, conflictOption string, filePath string, fileInfo fileutil.FileInfo, sendMsg func(text string), locText func(text string) string, username string) interface{} {
 	if fileInfo.SizeType == fileutil.SizeTypeLarge {
 		//For Large file type use resemble onedrive upload API
-		return rs.recoverableUpload(altUserId, bearerToken, conflictOption, filePath, fileInfo, sendMsg, locText, username)
+		return rs.recoverableUpload(altUserId, bearerToken, conflictOption, targetFolder, filePath, fileInfo, sendMsg, locText, username)
 	} else {
 
 		uploadPath := fmt.Sprintf(simpleUploadPath, altUserId, filePath)
