@@ -14,6 +14,7 @@ const SizeTypeLarge = "LARGE"
 const SizeTypeSmall = "SMALL"
 
 var defaultChunkSize = int64(10 * 1024 * 1024)
+var timeOut = 60
 
 type FileInfo struct {
 	FileData *os.File
@@ -23,11 +24,18 @@ type FileInfo struct {
 func GetDefaultChunkSize() int64 {
 	return defaultChunkSize
 }
-
 func SetDefaultChunkSize(MB int) int64 {
 	defaultChunkSize = int64(MB * 1024 * 1024)
 	return defaultChunkSize
 }
+func GetTimeOut() int {
+	return timeOut
+}
+func SetTimeOut(times int) int {
+	timeOut = times
+	return timeOut
+}
+
 func GetAllUploadItemsFrmSource(sourcePath string) (map[string]FileInfo, error) {
 	fileMap := make(map[string]FileInfo)
 	err := filepath.Walk(sourcePath,

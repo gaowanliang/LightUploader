@@ -21,6 +21,8 @@ import (
 	"github.com/gosuri/uilive"
 )
 
+var loc Loc
+
 func ApplyForNewPass(url string, ms int) string {
 	return httpLocal.NewPassCheck(url, ms)
 }
@@ -45,12 +47,12 @@ func Upload(infoPath string, filePath string, targetFolder string, threads int, 
 	}
 	filePath = path.Base(filePath)
 	//Initialize the upload restore service
-	restoreSrvc := upload.GetRestoreService(http.DefaultClient)
+	restoreSrvc := upload.GetRestoreService(&http.Client{Timeout: time.Duration(fileutil.GetTimeOut()) * time.Second})
 
 	//Get the list of files that needs to be restore with the actual backed up path. 获取需要使用实际备份路径还原的文件列表。
 	fileInfoToUpload, err := fileutil.GetAllUploadItemsFrmSource(filePath)
 	if err != nil {
-		log.Fatalf("Failed to Load Files from source :%v", err)
+		log.Fatalf(loc.print("failToLoadFiles"), err)
 	}
 
 	//Call restore process based on alternate or original location 基于备用或原始位置调用还原过程
@@ -83,7 +85,7 @@ func restore(restoreSrvc *upload.RestoreService, filesToRestore map[string]fileu
 			}()
 			temps, botKey, iUserID := sendMsg()
 			var iSendMsg func(string)
-			tip := "`" + filePath + "`" + "开始上传至OneDrive"
+			tip := "`" + filePath + "`" + loc.print("startToUpload1")
 			if botKey != "" && iUserID != "" {
 				iSendMsg = botSend(botKey, iUserID, tip)
 			}
@@ -133,7 +135,7 @@ func restoreToAltLoc(restoreSrvc *upload.RestoreService, filesToRestore map[stri
 				<-pool
 			}()
 			temp := sendMsg()
-			temp(filePath + "开始上传至OneDrive")
+			temp(filePath + loc.print("startToUpload1"))
 			us := ""
 			userID, bearerToken := httpLocal.GetMyIDAndBearer(infoPath)
 			//username := strings.ReplaceAll(filepath.Base(infoPath), ".json", "")
@@ -166,7 +168,7 @@ func botSend(botKey string, iuserID string, initText string) func(string) {
 		message_id, _ = jsonparser.GetInt(body, "result", "message_id")
 	} else {
 		description, _ := jsonparser.GetString(body, "description")
-		log.Panicf("Telegram Send Error:%s", description)
+		log.Panicf(loc.print("telegramSendError"), description)
 	}
 	return func(text string) {
 		if text == "close" {
@@ -191,7 +193,7 @@ func botSend(botKey string, iuserID string, initText string) func(string) {
 		if !ok {
 			description, _ := jsonparser.GetString(body, "description")
 			if !strings.Contains(string(body), "message is not modified") {
-				log.Panicf("Telegram Send Error:%s", description)
+				log.Panicf(loc.print("telegramSendError"), description)
 			}
 		}
 
@@ -219,22 +221,29 @@ func main() {
 	var ms int
 	var block int
 	var targetFolder string
+	var timeOut int
+	var lang string
 	// StringVar用指定的名称、控制台参数项目、默认值、使用信息注册一个string类型flag，并将flag的值保存到p指向的变量
-	flag.StringVar(&codeURL, "a", "", "通过登录 https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=ad5e65fd-856d-4356-aefc-537a9700c137&response_type=code&redirect_uri=http://localhost/onedrive-login&response_mode=query&scope=offline_access%20User.Read%20Files.ReadWrite.All 后跳转的网址(输入网址时需要使用双引号包裹网址)")
-	flag.IntVar(&ms, "v", 0, "选择版本，其中0为国际版，1为个人版(家庭版)，默认为0")
-	flag.StringVar(&configFile, "c", "", "登录文件位置")
-	flag.StringVar(&folder, "f", "", "欲上传的文件/文件夹")
-	flag.IntVar(&thread, "t", 3, "线程数，默认为3")
-	flag.IntVar(&block, "b", 10, "自定义上传分块大小, 可以提高网络吞吐量, 受限于磁盘性能和网络速度，默认为 10 (单位MB)")
-	flag.StringVar(&botKey, "tgbot", "", "使用Telegram机器人实时监控上传，此处需填写机器人的access token，形如123456789:xxxxxxxxx，输入时需使用双引号包裹")
-	flag.StringVar(&iuserID, "uid", "", "使用Telegram机器人实时监控上传，此处需填写接收人的userID，形如123456789")
-	flag.StringVar(&targetFolder, "r", "", "设置上传的目录")
 
+	flag.StringVar(&codeURL, "a", "", "Jump to the https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=ad5e65fd-856d-4356-aefc-537a9700c137&response_type=code&redirect_uri=http://localhost/onedrive-login&response_mode=query&scope=offline_access%20User.Read%20Files.ReadWrite.All after logging in to the website (you need to use double quotation marks to wrap the URL when entering the URL)")
+	flag.IntVar(&ms, "v", 0, "Select the version, where 0 is the business version and 1 is the personal version (home version). The default is 0")
+	flag.StringVar(&configFile, "c", "", "Login config file location")
+	flag.StringVar(&folder, "f", "", "Files / folders to upload")
+	flag.IntVar(&thread, "t", 3, "The number of threads")
+	flag.IntVar(&block, "b", 10, "User defined upload block size can improve network throughput. Limited by disk performance and network speed, the default is 10 (unit: MB)")
+	flag.StringVar(&botKey, "tgbot", "", "Use the telegram robot to monitor the upload in real time. Here you need to fill in the robot's access token, such as 123456789:XXXXXXXX, and use double quotation marks when entering")
+	flag.StringVar(&iuserID, "uid", "", "Use the telegram robot to monitor the upload in real time. Fill in the user ID of the receiver, such as 123456789")
+	flag.StringVar(&targetFolder, "r", "", "Set the directory you want to upload to onedrive")
+	flag.IntVar(&timeOut, "to", 60, "When uploading, the timeout of each block is 60s by default")
+	flag.StringVar(&lang, "l", "en", "Set the software language, English by default")
 	// 从arguments中解析注册的flag。必须在所有flag都注册好而未访问其值时执行。未注册却使用flag -help时，会返回ErrHelp。
-
 	flag.Parse()
+	loc = Loc{}
+	loc.init(lang)
+
 	if configFile != "" && folder != "" {
 		fileutil.SetDefaultChunkSize(block)
+		fileutil.SetTimeOut(timeOut)
 		startTime := time.Now().Unix()
 		writer := uilive.New()
 		writer.Start()
@@ -242,11 +251,12 @@ func main() {
 		if err != nil {
 			log.Panic(err)
 		}
-		_, _ = fmt.Fprintf(writer, "`%s` 开始上传，大小: `%s`", folder, fileutil.Byte2Readable(float64(size)))
+
+		_, _ = fmt.Fprintf(writer, loc.print("startToUpload"), folder, fileutil.Byte2Readable(float64(size)))
 
 		var sendMsg func(string)
 		if botKey != "" && iuserID != "" {
-			sendMsg = botSend(botKey, iuserID, fmt.Sprintf("`%s` 开始上传，大小: `%s`", folder, fileutil.Byte2Readable(float64(size))))
+			sendMsg = botSend(botKey, iuserID, fmt.Sprintf(loc.print("startToUpload"), folder, fileutil.Byte2Readable(float64(size))))
 		}
 
 		Upload(strings.ReplaceAll(configFile, "\\", "/"), strings.ReplaceAll(folder, "\\", "/"), targetFolder, thread, func() (func(text string), string, string) {
@@ -261,29 +271,30 @@ func main() {
 			}
 
 		}, func(text string) string {
-			return oldFunc(text)
+			return loc.print(text)
 		})
 		cost := time.Now().Unix() - startTime
 		speed := fileutil.Byte2Readable(float64(size) / float64(cost))
-		_, _ = fmt.Fprintf(writer, "%s上传完成，耗时 %d 秒，平均上传速度 %s/s\n", folder, cost, speed)
+		_, _ = fmt.Fprintf(writer, loc.print("completeUpload"), folder, cost, speed)
 		if botKey != "" && iuserID != "" {
-			sendMsg(fmt.Sprintf("`%s`上传完成，耗时 %d 秒，平均上传速度 `%s/s`", folder, cost, speed))
+			sendMsg(fmt.Sprintf(loc.print("completeUpload"), folder, cost, speed))
 		}
 	} else {
 		if codeURL == "" {
 			flag.PrintDefaults()
 		} else {
-			log.Printf("注册成功，已在运行目录下新建登录文件%s", ApplyForNewPass(codeURL, ms))
+			log.Printf(loc.print("configCreateSuccess"), ApplyForNewPass(codeURL, ms))
 		}
 	}
 
 	// 打印
 	//fmt.Printf("username=%v password=%v host=%v port=%v", username, password, host, port)
-
 }
 
 /*
 SET CGO_ENABLED=0
 SET GOOS=linux
 SET GOARCH=amd64
+go build -o OneDriveUploader .
+/usr/local/bin
 */

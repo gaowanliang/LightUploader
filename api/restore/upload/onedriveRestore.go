@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"path/filepath"
+	"strings"
 )
 
 const (
@@ -40,16 +41,17 @@ func (rs *RestoreService) SimpleUploadToOriginalLoc(userId string, bearerToken s
 	if fileInfo.SizeType == fileutil.SizeTypeLarge {
 		//For Large file type use resemble onedrive upload API
 		//log.Printf("Processing Large File: %s", filePath)
-		sendMsg(fmt.Sprintf("文件: `%s` 开始上传至OneDrive\n账户:`%s`\n文件超过4MB，进入大文件通道", filePath, username))
+		sendMsg(fmt.Sprintf(locText("oneDriveBigFile"), filePath, username))
 		return rs.recoverableUpload(userId, bearerToken, conflictOption, targetFolder, filePath, fileInfo, sendMsg, locText, username)
 	} else {
 		//log.Printf("Processing Small File: %s", filePath)
-		sendMsg(fmt.Sprintf("文件: `%s` 开始上传至OneDrive\n账户:`%s`\n文件小于4MB，进入小文件通道，上传中", filePath, username))
-		targetPath := filepath.Join(targetFolder, filePath)
+		sendMsg(fmt.Sprintf(locText("oneDriveSmallFile"), filePath, username))
+		targetPath := strings.ReplaceAll(filepath.Join(targetFolder, filePath), "\\", "/")
+
 		uploadPath := fmt.Sprintf(simpleUploadPath, userId, targetPath)
 		req, err := rs.NewRequest("PUT", uploadPath, getSimpleUploadHeader(bearerToken), fileInfo.FileData)
 		if err != nil {
-			log.Panicf("Failed to Restore :%v", err)
+			log.Panicf(locText("failToStore"), err)
 		}
 		//Handle query parameter for conflict resolution
 		//The different values for @microsoft.graph.conflictBehavior= rename|replace|fail
@@ -58,18 +60,19 @@ func (rs *RestoreService) SimpleUploadToOriginalLoc(userId string, bearerToken s
 		req.URL.RawQuery = q.Encode()
 
 		//Execute the request
-
 		var resp *http.Response
 		for errCount := 1; errCount < 10; errCount++ {
 			resp, err = rs.Do(req)
 			if err != nil {
-				sendMsg(fmt.Sprintf("向OneDrive账户 `%s` 上传 `%s` 时出现连接问题，正在重试，当前为第%d次重试", username, filePath, errCount))
+				sendMsg(fmt.Sprintf(locText("failToLink"), username, filePath, errCount))
 			} else {
 				break
 			}
+
 		}
+
 		if err != nil {
-			log.Panicf("Failed to Restore :%v", err)
+			log.Panicf(locText("failToStore"), err)
 		}
 		if resp.Body != nil {
 			defer resp.Body.Close()
@@ -78,7 +81,7 @@ func (rs *RestoreService) SimpleUploadToOriginalLoc(userId string, bearerToken s
 		respMap := make(map[string]interface{})
 		err = json.NewDecoder(resp.Body).Decode(&respMap)
 		if err != nil {
-			log.Panicf("Failed to Restore :%v", err)
+			log.Panicf(locText("failToStore"), err)
 		}
 		sendMsg("close")
 		return respMap

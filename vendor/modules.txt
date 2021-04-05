@@ -1,13 +1,73 @@
+# github.com/BurntSushi/toml v0.3.1
+## explicit
+github.com/BurntSushi/toml
 # github.com/buger/jsonparser v1.0.0
 ## explicit
 github.com/buger/jsonparser
+# github.com/fsnotify/fsnotify v1.4.9
+github.com/fsnotify/fsnotify
 # github.com/gosuri/uilive v0.0.4
 ## explicit
 github.com/gosuri/uilive
+# github.com/hedzr/cmdr v1.7.43
+## explicit
+github.com/hedzr/cmdr
+github.com/hedzr/cmdr/conf
+github.com/hedzr/cmdr/flag
+github.com/hedzr/cmdr/tool
+# github.com/hedzr/cmdr-base v0.1.3
+github.com/hedzr/cmdr-base
+# github.com/hedzr/log v0.3.11
+github.com/hedzr/log
+github.com/hedzr/log/exec
+github.com/hedzr/log/isdelve
+github.com/hedzr/log/trace
+# github.com/hedzr/logex v1.3.11
+github.com/hedzr/logex
+github.com/hedzr/logex/build
+github.com/hedzr/logex/formatter
+github.com/hedzr/logex/logx/logrus
+github.com/hedzr/logex/logx/zap
+github.com/hedzr/logex/logx/zap/sugar
+# github.com/konsorten/go-windows-terminal-sequences v1.0.3
+github.com/konsorten/go-windows-terminal-sequences
 # github.com/mattn/go-isatty v0.0.12
 ## explicit
 github.com/mattn/go-isatty
+# github.com/nicksnyder/go-i18n/v2 v2.1.2
+## explicit
+github.com/nicksnyder/go-i18n/v2/i18n
+github.com/nicksnyder/go-i18n/v2/internal
+github.com/nicksnyder/go-i18n/v2/internal/plural
+# github.com/sirupsen/logrus v1.7.0
+github.com/sirupsen/logrus
+# go.uber.org/atomic v1.6.0
+go.uber.org/atomic
+# go.uber.org/multierr v1.5.0
+go.uber.org/multierr
+# go.uber.org/zap v1.16.0
+go.uber.org/zap
+go.uber.org/zap/buffer
+go.uber.org/zap/internal/bufferpool
+go.uber.org/zap/internal/color
+go.uber.org/zap/internal/exit
+go.uber.org/zap/zapcore
+# golang.org/x/crypto v0.0.0-20190510104115-cbcb75029529
+golang.org/x/crypto/ssh/terminal
 # golang.org/x/sys v0.0.0-20210324051608-47abb6519492
 ## explicit
 golang.org/x/sys/internal/unsafeheader
 golang.org/x/sys/unix
+golang.org/x/sys/windows
+# golang.org/x/text v0.3.6
+## explicit
+golang.org/x/text/internal/language
+golang.org/x/text/internal/language/compact
+golang.org/x/text/internal/tag
+golang.org/x/text/language
+# gopkg.in/hedzr/errors.v2 v2.1.3
+gopkg.in/hedzr/errors.v2
+# gopkg.in/natefinch/lumberjack.v2 v2.0.0
+gopkg.in/natefinch/lumberjack.v2
+# gopkg.in/yaml.v3 v3.0.0-20210106172901-c476de37821d
+gopkg.in/yaml.v3

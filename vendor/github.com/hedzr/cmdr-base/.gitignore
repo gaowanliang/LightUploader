@@ -1,0 +1,67 @@
+.idea/
+*.iml
+.DS\_Store
+tmp/
+bin/
+output/
+ref/
+try*/
+bash.comp.1/
+test_try/
+man*/
+*.1
+*.2
+*.3
+*.4
+*.5
+*.6
+*.7
+*.8
+.vagrant/
+docs/
+*.gz
+*.zip
+*.rar
+*.tgz
+*.tar
+*.bz2
+*.dmg
+*.deb
+*.rpm
+*.log
+coverage.txt
+cover.out
+cover.html
+profile.cov
+.tmp.*
+conf.d/
+*.local
+*___jb_old___
+
+### two executable files
+
+would_like
+would_like_n/would_like_n
+test/test
+
+### Go template
+# Binaries for programs and plugins
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Test binary, build with `go test -c`
+*.test
+
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.out
+
+# Project-local glide cache, RE: https://github.com/Masterminds/glide/issues/736
+.glide/
+
+.pid/
+
+
+devops
+main
