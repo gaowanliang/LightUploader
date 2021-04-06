@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -24,7 +25,7 @@ import (
 var loc Loc
 
 func ApplyForNewPass(url string, ms int) string {
-	return httpLocal.NewPassCheck(url, ms)
+	return httpLocal.NewPassCheck(url, ms, lang)
 }
 
 func Upload(infoPath string, filePath string, targetFolder string, threads int, sendMsg func() (func(text string), string, string), locText func(text string) string) {
@@ -96,7 +97,7 @@ func restore(restoreSrvc *upload.RestoreService, filesToRestore map[string]fileu
 				}
 			}
 			temp(tip)
-			userID, bearerToken := httpLocal.GetMyIDAndBearer(infoPath)
+			userID, bearerToken := httpLocal.GetMyIDAndBearer(infoPath, thread, block, lang, timeOut, botKey, _UserID)
 			username := strings.ReplaceAll(filepath.Base(infoPath), ".json", "")
 			restoreSrvc.SimpleUploadToOriginalLoc(userID, bearerToken, "rename", targetFolder, filePath, fileInfo, temp, locText, username)
 
@@ -137,7 +138,7 @@ func restoreToAltLoc(restoreSrvc *upload.RestoreService, filesToRestore map[stri
 			temp := sendMsg()
 			temp(filePath + loc.print("startToUpload1"))
 			us := ""
-			userID, bearerToken := httpLocal.GetMyIDAndBearer(infoPath)
+			userID, bearerToken := httpLocal.GetMyIDAndBearer(infoPath, thread, block, lang, timeOut, botKey, _UserID)
 			//username := strings.ReplaceAll(filepath.Base(infoPath), ".json", "")
 			restoreSrvc.SimpleUploadToAlternateLoc(userID, bearerToken, "rename", targetFolder, rootFilePath, fileItem, temp, locText, us)
 
@@ -211,18 +212,20 @@ func DirSize(path string) (int64, error) {
 	return size, err
 }
 
+var timeOut int
+var lang string
+var block int
+var botKey string
+var _UserID string
+var thread int
+
 func main() {
 	var codeURL string
 	var configFile string
 	var folder string
-	var thread int
-	var botKey string
-	var iuserID string
 	var ms int
-	var block int
 	var targetFolder string
-	var timeOut int
-	var lang string
+
 	// StringVar用指定的名称、控制台参数项目、默认值、使用信息注册一个string类型flag，并将flag的值保存到p指向的变量
 
 	flag.StringVar(&codeURL, "a", "", "Jump to the https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=ad5e65fd-856d-4356-aefc-537a9700c137&response_type=code&redirect_uri=http://localhost/onedrive-login&response_mode=query&scope=offline_access%20User.Read%20Files.ReadWrite.All after logging in to the website (you need to use double quotation marks to wrap the URL when entering the URL)")
@@ -232,18 +235,54 @@ func main() {
 	flag.IntVar(&thread, "t", 3, "The number of threads")
 	flag.IntVar(&block, "b", 10, "User defined upload block size can improve network throughput. Limited by disk performance and network speed, the default is 10 (unit: MB)")
 	flag.StringVar(&botKey, "tgbot", "", "Use the telegram robot to monitor the upload in real time. Here you need to fill in the robot's access token, such as 123456789:XXXXXXXX, and use double quotation marks when entering")
-	flag.StringVar(&iuserID, "uid", "", "Use the telegram robot to monitor the upload in real time. Fill in the user ID of the receiver, such as 123456789")
+	flag.StringVar(&_UserID, "uid", "", "Use the telegram robot to monitor the upload in real time. Fill in the user ID of the receiver, such as 123456789")
 	flag.StringVar(&targetFolder, "r", "", "Set the directory you want to upload to onedrive")
 	flag.IntVar(&timeOut, "to", 60, "When uploading, the timeout of each block is 60s by default")
 	flag.StringVar(&lang, "l", "en", "Set the software language, English by default")
 	// 从arguments中解析注册的flag。必须在所有flag都注册好而未访问其值时执行。未注册却使用flag -help时，会返回ErrHelp。
 	flag.Parse()
+
 	loc = Loc{}
-	loc.init(lang)
 
 	if configFile != "" && folder != "" {
-		fileutil.SetDefaultChunkSize(block)
-		fileutil.SetTimeOut(timeOut)
+		filePtr, err := os.Open(configFile)
+		if err != nil {
+			log.Panicln(err)
+		}
+		defer filePtr.Close()
+		var info httpLocal.Certificate
+		// 创建json解码器
+		decoder := json.NewDecoder(filePtr)
+		err = decoder.Decode(&info)
+		if err != nil {
+			log.Panicln(err.Error())
+		}
+
+		if info.Language != "en" && lang == "en" {
+			loc.init(info.Language)
+			lang = info.Language
+		} else {
+			loc.init(lang)
+		}
+
+		if info.BlockSize != 10 && block == 10 {
+			fileutil.SetDefaultChunkSize(info.BlockSize)
+		} else {
+			fileutil.SetDefaultChunkSize(block)
+		}
+
+		if info.TimeOut != 60 && timeOut == 60 {
+			fileutil.SetTimeOut(info.TimeOut)
+			timeOut = info.TimeOut
+		} else {
+			fileutil.SetTimeOut(timeOut)
+		}
+
+		if info.BotKey != "" && info.UserID != "" && botKey == "1" {
+			botKey = info.BotKey
+			_UserID = info.UserID
+		}
+
 		startTime := time.Now().Unix()
 		writer := uilive.New()
 		writer.Start()
@@ -255,15 +294,15 @@ func main() {
 		_, _ = fmt.Fprintf(writer, loc.print("startToUpload"), folder, fileutil.Byte2Readable(float64(size)))
 
 		var sendMsg func(string)
-		if botKey != "" && iuserID != "" {
-			sendMsg = botSend(botKey, iuserID, fmt.Sprintf(loc.print("startToUpload"), folder, fileutil.Byte2Readable(float64(size))))
+		if botKey != "" && _UserID != "" {
+			sendMsg = botSend(botKey, _UserID, fmt.Sprintf(loc.print("startToUpload"), folder, fileutil.Byte2Readable(float64(size))))
 		}
 
 		Upload(strings.ReplaceAll(configFile, "\\", "/"), strings.ReplaceAll(folder, "\\", "/"), targetFolder, thread, func() (func(text string), string, string) {
-			if botKey != "" && iuserID != "" {
+			if botKey != "" && _UserID != "" {
 				return func(text string) {
 					_, _ = fmt.Fprintf(writer, "%s\n", text)
-				}, botKey, iuserID
+				}, botKey, _UserID
 			} else {
 				return func(text string) {
 					_, _ = fmt.Fprintf(writer, "%s\n", text)
@@ -276,10 +315,11 @@ func main() {
 		cost := time.Now().Unix() - startTime
 		speed := fileutil.Byte2Readable(float64(size) / float64(cost))
 		_, _ = fmt.Fprintf(writer, loc.print("completeUpload"), folder, cost, speed)
-		if botKey != "" && iuserID != "" {
+		if botKey != "" && _UserID != "" {
 			sendMsg(fmt.Sprintf(loc.print("completeUpload"), folder, cost, speed))
 		}
 	} else {
+		loc.init(lang)
 		if codeURL == "" {
 			flag.PrintDefaults()
 		} else {

@@ -13,12 +13,20 @@ import (
 	"github.com/buger/jsonparser"
 )
 
-type token struct {
-	RefreshToken string `json:"refresh_token"`
+type Certificate struct {
+	RefreshToken string `json:"RefreshToken"`
+	ThreadNum    int    `json:"ThreadNum"`
+	BlockSize    int    `json:"BlockSize"`
+	SigleFile    int    `json:"SigleFile"`
+	MainLand     bool   `json:"MainLand"`
+	Language     string `json:"Language"`
+	TimeOut      int    `json:"TimeOut"`
+	BotKey       string `json:"BotKey"`
+	UserID       string `json:"UserID"`
 }
 
-func NewPassCheck(oauth2URL string, ms int) string {
-	Bearer := getAccessToken(oauth2URL, ms)
+func NewPassCheck(oauth2URL string, ms int, lang string) string {
+	Bearer := getAccessToken(oauth2URL, ms, lang)
 
 	url := "https://graph.microsoft.com/v1.0/me/"
 	req, err := http.NewRequest("GET", url, nil)
@@ -49,12 +57,12 @@ func NewPassCheck(oauth2URL string, ms int) string {
 	return "./" + mail + ".json"
 }
 
-// GetMyIDAndBearer is get microsoft ID and access token
-func GetMyIDAndBearer(infoPath string) (string, string) {
+// GetMyIDAndBearer is get microsoft ID and access Certificate
+func GetMyIDAndBearer(infoPath string, Thread int, BlockSize int, Language string, TimeOut int, BotKey string, UserID string) (string, string) {
 	MyID := ""
 	Bearer := ""
 	_, err := os.Stat(infoPath)
-	Bearer = refreshAccessToken(infoPath)
+	Bearer = refreshAccessToken(infoPath, Thread, BlockSize, Language, TimeOut, BotKey, UserID)
 	url := "https://graph.microsoft.com/v1.0/me/"
 	req, err := http.NewRequest("GET", url, nil)
 	req.Header.Set("Authorization", "Bearer "+Bearer)
@@ -78,7 +86,7 @@ func GetMyIDAndBearer(infoPath string) (string, string) {
 	return MyID, Bearer
 }
 
-func getAccessToken(oauth2URL string, ms int) string {
+func getAccessToken(oauth2URL string, ms int, lang string) string {
 	var re *regexp.Regexp
 	if ms == 1 {
 		re = regexp.MustCompile(`(?m)code=(.*?)$`)
@@ -119,8 +127,16 @@ func getAccessToken(oauth2URL string, ms int) string {
 	}
 	//log.Println(refreshToken)
 
-	info := token{
+	info := Certificate{
 		RefreshToken: refreshToken,
+		ThreadNum:    3,
+		BlockSize:    10,
+		SigleFile:    100,
+		MainLand:     false,
+		Language:     lang,
+		TimeOut:      60,
+		BotKey:       "",
+		UserID:       "",
 	}
 	// 创建文件
 	filePtr, err := os.Create("./amazing.json")
@@ -138,14 +154,14 @@ func getAccessToken(oauth2URL string, ms int) string {
 	return accessToken
 }
 
-func refreshAccessToken(path string) string {
+func refreshAccessToken(path string, Thread int, BlockSize int, Language string, TimeOut int, BotKey string, UserID string) string {
 	filePtr, err := os.Open(path)
 	if err != nil {
 		log.Panicln(err)
 		return ""
 	}
 	defer filePtr.Close()
-	var info token
+	var info Certificate
 	// 创建json解码器
 	decoder := json.NewDecoder(filePtr)
 	err = decoder.Decode(&info)
@@ -175,8 +191,16 @@ func refreshAccessToken(path string) string {
 	}
 	// log.Println(refreshToken)
 
-	info = token{
+	info = Certificate{
 		RefreshToken: refreshToken,
+		ThreadNum:    Thread,
+		BlockSize:    BlockSize,
+		SigleFile:    100,
+		MainLand:     false,
+		Language:     Language,
+		TimeOut:      TimeOut,
+		BotKey:       BotKey,
+		UserID:       UserID,
 	}
 	// 创建文件
 	filePtr, err = os.Create(path)

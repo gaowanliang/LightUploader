@@ -26,6 +26,9 @@ MoeClub wrote a [very good version](https://github.com/MoeClub/OneList/tree/mast
 # Business
 OneDriveUploader -a "url"
 
+# Business, and use Chinese language pack
+OneDriveUploader -a "url" -l zh-CN
+
 # Personal (Home)
 OneDriveUploader -a "url" -v 1
 
@@ -42,22 +45,22 @@ OneDriveUploader -a "url" -v 2
 ```c
 Usage of OneDriveUploader:
   -a string
-        Setup and Init auth.json.
+        //Setup and Init auth.json.
   -b string
-        Set block size. [Unit: M; 5<=b<=60;] (default "10")
+        //Set block size. [Unit: M; 5<=b<=60;] (default "10")
   -c string
-        Config file. (default "auth.json")
+        //Config file.
 
   -r string
-        Upload to reomte path.
-
+        //Upload to reomte path.
+  -l string
+        // Software language
   -f string
         // *Necessary parameters, file or folder to upload
-        Upload item.
   -t string
         // Number of threads, number of files uploaded at the same time. Default: 3
-        Set thread num. (default "3")
-  
+  -to int
+        // The timeout time of a single packet is 60s by default
   -tgbot string
         //Use the Telegram bot to monitor uploads in real time, here you need to fill in the access token of the bot, e.g. 123456789:xxxxxxxxxx, use double quotes to wrap it
   -uid string
@@ -80,11 +83,20 @@ Usage of OneDriveUploader:
     // Cache refresh interval.
     "RefreshInterval": 1500,
     // If this is the Chinese version (CenturyLink), this should be true.
-    "MainLand": false
+    "MainLand": false,
+    //Software language
+    "Language": "zh-CN",
+    //timeout
+    "TimeOut": 60,
+    //Telegram Bot key
+    "BotKey": "",
+    //Telegram User ID
+    "UserID": ""
 }
 ```
+Note that when a configuration file is used at the same time and the parameters in the configuration file are not the default values, the parameters in the configuration file will be used by default, and when parameters are entered on the command line, the parameters currently entered on the command line will be used and the parameters in the configuration file will be changed. That is, the parameters in the command line take precedence over the parameters in the configuration file and will change the parameters in the configuration file.
 
-## 示例
+## Examples
 ```bash
 # Some examples:
 
@@ -100,8 +112,16 @@ OneDriveUploader -c xxx.json -f "Download" -r "Test"
 # Upload the Download folder from the same directory to the root of the OneDrive, using 10 threads
 OneDriveUploader -c xxx.json -t 10 -f "Download" 
 
+# Upload the download folder in the same directory to the root directory of onedrive network disk, use 10 threads, and set the timeout to 30 seconds
+OneDriveUploader -c xxx.json -t 10 -f "Download" -to 30
+
 # Upload the Download folder from the same directory to the root of the OneDrive, using 10 threads, while using Telegram Bot to monitor the progress of the upload in real time
 OneDriveUploader -c xxx.json -t 10 -f "Download" -tgbot "123456:xxxxxxxx" -uid 123456789
+
+# Upload the download folder in the same directory to the root directory of onedrive network disk, use 10 threads, and use the telegram BOT parameter loader in the configuration file to monitor the upload progress in real time (provided that the configuration file contains the parameters of telegram BOT)
+
+OneDriveUploader -c xxx.json -t 10 -f "Download" -tgbot "1"
+
 
 # Upload the Download folder from the same directory to the root of the OneDrive, using 15 threads, and setting the chunk size to 20M
 OneDriveUploader -c xxx.json -t 15 -b 20 -f "Download" 
