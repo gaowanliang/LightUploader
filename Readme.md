@@ -69,17 +69,17 @@ Usage of OneDriveUploader:
         // Select the version, where 0 is the Business version and 1 is the personal (home) version, the default is 0
 ```
 
-## 配置
+## Config
 ```jsonc
 {
     // Authorisation tokens
     "RefreshToken": "1234564567890ABCDEF",
     // Maximum number of threads. (Number of simultaneous file uploads)
-    "ThreadNum": "2",
+    "ThreadNum": 2,
     // Maximum upload chunk size. (The maximum chunk size for each file upload, it is recommended to reduce it if the network is not good. Unit: MB)
-    "BlockSize": "10",
+    "BlockSize": 10,
     // Maximum single file size. (Currently: 100GB single file limit for Personal Edition (Home Edition); 15GB single file limit for other editions, Microsoft will update to 100GB over time. Unit: GB)
-    "SigleFile": "100",
+    "SigleFile": 100,
     // Cache refresh interval.
     "RefreshInterval": 1500,
     // If this is the Chinese version (CenturyLink), this should be true.
@@ -119,7 +119,6 @@ OneDriveUploader -c xxx.json -t 10 -f "Download" -to 30
 OneDriveUploader -c xxx.json -t 10 -f "Download" -tgbot "123456:xxxxxxxx" -uid 123456789
 
 # Upload the download folder in the same directory to the root directory of onedrive network disk, use 10 threads, and use the telegram BOT parameter loader in the configuration file to monitor the upload progress in real time (provided that the configuration file contains the parameters of telegram BOT)
-
 OneDriveUploader -c xxx.json -t 10 -f "Download" -tgbot "1"
 
 
