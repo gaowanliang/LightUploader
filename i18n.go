@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"path/filepath"
 	"regexp"
 	"time"
 )
@@ -87,14 +88,17 @@ type Loc struct {
 }
 
 func (loc *Loc) init(locLanguage string) {
-	_, err := os.Stat(fmt.Sprintf("%s.toml", locLanguage))
+	dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
+	dropErr(err)
+	dir = filepath.Join(dir, fmt.Sprintf("%s.toml", locLanguage))
+	_, err = os.Stat(dir)
 	if err != nil {
 		resp, err := http.Get(fmt.Sprintf("https://cdn.jsdelivr.net/gh/gaowanliang/OneDriveUploader/i18n/%s.toml", locLanguage))
 		dropErr(err)
 		defer resp.Body.Close()
 		data, err := ioutil.ReadAll(resp.Body)
 		dropErr(err)
-		ioutil.WriteFile(fmt.Sprintf("%s.toml", locLanguage), data, 0666)
+		ioutil.WriteFile(dir, data, 0666)
 	} else {
 		url := "https://cdn.jsdelivr.net/gh/gaowanliang/OneDriveUploader@latest/i18n/"
 		j := pageDownload(url)
@@ -107,16 +111,16 @@ func (loc *Loc) init(locLanguage string) {
 			}
 
 		}
-		oldLanFileTime := GetFileModTime(fmt.Sprintf("%s.toml", locLanguage))
+		oldLanFileTime := GetFileModTime(dir)
 		if newLanFileTime > oldLanFileTime {
-			err := os.RemoveAll(fmt.Sprintf("%s.toml", locLanguage))
+			err = os.RemoveAll(dir)
 			dropErr(err)
 			resp, err := http.Get(fmt.Sprintf("https://cdn.jsdelivr.net/gh/gaowanliang/OneDriveUploader/i18n/%s.toml", locLanguage))
 			dropErr(err)
 			defer resp.Body.Close()
 			data, err := ioutil.ReadAll(resp.Body)
 			dropErr(err)
-			ioutil.WriteFile(fmt.Sprintf("%s.toml", locLanguage), data, 0644)
+			ioutil.WriteFile(dir, data, 0644)
 		}
 	}
 	loc.localize = i18n.NewLocalizer(bundle, locLanguage)

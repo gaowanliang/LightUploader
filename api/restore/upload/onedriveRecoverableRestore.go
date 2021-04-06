@@ -110,14 +110,18 @@ func (rs *RestoreService) getUploadSession(userID string, bearerToken string, co
 	if err != nil {
 		return nil, err
 	}
+	//fmt.Printf("%+v", body)
+	//log.Panicf("%+v", uploadSessionPath)
 
 	//Create request instance
-	req, err := rs.NewRequest("POST", uploadSessionPath, getRessumableUploadSessionHeader(bearerToken), body)
+	req, err := rs.NewRequest("PUT", uploadSessionPath, getRessumableUploadSessionHeader(bearerToken), body)
+	//log.Panicf("%+v", req)
 	if err != nil {
 		return nil, err
 	}
 	//Execute the request
 	resp, err := rs.Do(req)
+	// log.Panicf("%+v", resp)
 	if err != nil {
 		//Need to return a generic object from onedrive upload instead of response directly
 		return nil, err

@@ -1,8 +1,10 @@
 package upload
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/buger/jsonparser"
 	"io/ioutil"
 	"log"
 	"main/fileutil"
@@ -26,6 +28,31 @@ func GetRestoreService(c *http.Client) *RestoreService {
 // RestoreService ItemService manages the communication with Item related API endpoints
 type RestoreService struct {
 	*httpLocal.OneDrive
+}
+
+func (rs *RestoreService) GetDriveItem(userId string, bearerToken string, targetFolder string) (map[string]bool, error) {
+	uploadPath := fmt.Sprintf("/users/%s/drive/root:/%s:/children", userId, targetFolder)
+	req, err := rs.NewRequest("GET", uploadPath, getSimpleUploadHeader(bearerToken), nil)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := rs.Do(req)
+	if err != nil {
+		//log.Panicln(err)
+		return nil, err
+	}
+	//s, _ := ioutil.ReadAll(resp.Body)
+	buf := new(bytes.Buffer)
+	buf.ReadFrom(resp.Body)
+	a := make(map[string]bool, 0)
+
+	jsonparser.ArrayEach(buf.Bytes(), func(value []byte, dataType jsonparser.ValueType, offset int, err error) {
+		i, _ := jsonparser.GetString(value, "name")
+		//fmt.Println(i)
+		a[i] = true
+	}, "value")
+
+	return a, nil
 }
 
 // SimpleUploadToOriginalLoc allows you to provide the contents of a new file or update the
@@ -53,7 +80,7 @@ func (rs *RestoreService) SimpleUploadToOriginalLoc(userId string, bearerToken s
 		if err != nil {
 			log.Panicf(locText("failToStore"), err)
 		}
-		//Handle query parameter for conflict resolution
+		//Handle query parameter for conflict resolution 冲突解决的句柄查询参数
 		//The different values for @microsoft.graph.conflictBehavior= rename|replace|fail
 		q := url.Values{}
 		q.Add("@microsoft.graph.conflictBehavior", conflictOption)

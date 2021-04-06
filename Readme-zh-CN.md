@@ -9,6 +9,7 @@
 - 支持自定义上传分块大小.
 - 支持多线程上传(多文件同时上传).
 - 支持根据文件大小动态调整重试次数.
+- 支持跳过网盘中已存在的同名文件.
 - 支持通过Telegram Bot实时监控上传进度，方便使用全自动下载脚本时对上传的实时监控
 
 ## 授权
@@ -59,6 +60,8 @@ Usage of OneDriveUploader:
         //使用Telegram机器人实时监控上传，此处需填写机器人的access token，形如123456789:xxxxxxxxx，输入时需使用双引号包裹。当写入内容为“1”时，使用配置文件中的BotKey和UserID作为载入项
   -uid string
         // 使用Telegram机器人实时监控上传，此处需填写接收人的userID，形如123456789
+  -m int
+        // 选择模式，0为替换OneDrive中同名文件，1为跳过，默认为0
   -v int
         // 选择版本，其中0为国际版，1为个人版(家庭版)，默认为0
 ```
@@ -103,6 +106,9 @@ OneDriveUploader -c xxx.json -f "Download" -r "Test"
 
 # 将同目录下的 Download 文件夹上传到 OneDrive 网盘根目录中, 使用 10 线程
 OneDriveUploader -c xxx.json -t 10 -f "Download" 
+
+# 将同目录下的 Download 文件夹上传到 OneDrive 网盘根目录中, 使用 10 线程，并跳过同名文件
+OneDriveUploader -c xxx.json -t 10 -f "Download" -m 1
 
 # 将同目录下的 Download 文件夹上传到 OneDrive 网盘根目录中, 使用 10 线程，同时设置超时时间为30秒
 OneDriveUploader -c xxx.json -t 10 -f "Download" -to 30

@@ -11,6 +11,7 @@ MoeClub wrote a [very good version](https://github.com/MoeClub/OneList/tree/mast
 - Support for customising the upload chunk size.
 - Supports multi-threaded uploads (multiple files at the same time).
 - Support for dynamically adjusting the number of retries according to the file size.
+- Supports skipping the existing files with the same name in the OneDrive.
 - Support for real-time monitoring of upload progress via Telegram Bot, for easy monitoring of uploads when using fully automated download scripts.
 
 
@@ -65,6 +66,8 @@ Usage of OneDriveUploader:
         //Use the Telegram bot to monitor uploads in real time, here you need to fill in the access token of the bot, e.g. 123456789:xxxxxxxxxx, use double quotes to wrap it
   -uid string
         // Use the Telegram bot to monitor uploads in real time, here you need to fill in the recipient's userID, shaped like 123456789
+  -m int
+        // Select the mode, 0 is to replace the file with the same name in onedrive, 1 is to skip, the default is 0
   -v int
         // Select the version, where 0 is the Business version and 1 is the personal (home) version, the default is 0
 ```
@@ -80,8 +83,6 @@ Usage of OneDriveUploader:
     "BlockSize": 10,
     // Maximum single file size. (Currently: 100GB single file limit for Personal Edition (Home Edition); 15GB single file limit for other editions, Microsoft will update to 100GB over time. Unit: GB)
     "SigleFile": 100,
-    // Cache refresh interval.
-    "RefreshInterval": 1500,
     // If this is the Chinese version (CenturyLink), this should be true.
     "MainLand": false,
     //Software language
@@ -112,7 +113,10 @@ OneDriveUploader -c xxx.json -f "Download" -r "Test"
 # Upload the Download folder from the same directory to the root of the OneDrive, using 10 threads
 OneDriveUploader -c xxx.json -t 10 -f "Download" 
 
-# Upload the download folder in the same directory to the root directory of onedrive network disk, use 10 threads, and set the timeout to 30 seconds
+# Upload the download folder in the same directory to the root directory of onedrive, use 10 threads, and skip the file with the same name
+OneDriveUploader -c xxx.json -t 10 -f "Download" -m 1
+
+# Upload the download folder in the same directory to the root directory of onedrive, use 10 threads, and set the timeout to 30 seconds
 OneDriveUploader -c xxx.json -t 10 -f "Download" -to 30
 
 # Upload the Download folder from the same directory to the root of the OneDrive, using 10 threads, while using Telegram Bot to monitor the progress of the upload in real time

@@ -62,6 +62,7 @@ func Upload(infoPath string, filePath string, targetFolder string, threads int, 
 	} else {
 		restore(restoreSrvc, fileInfoToUpload, threads)
 	}*/
+
 	restore(restoreSrvc, fileInfoToUpload, targetFolder, threads, sendMsg, locText, infoPath)
 	err = os.Chdir(oldDir)
 	if err != nil {
@@ -76,32 +77,61 @@ func changeBlockSize(MB int) {
 func restore(restoreSrvc *upload.RestoreService, filesToRestore map[string]fileutil.FileInfo, targetFolder string, threads int, sendMsg func() (func(text string), string, string), locText func(text string) string, infoPath string) {
 	var wg sync.WaitGroup
 	pool := make(chan struct{}, threads)
+	checkPath := make(map[string]bool, 0)
+	pathFiles := make(map[string]map[string]bool, 0)
+	temps, _botKey, iUserID := sendMsg()
+	var iSendMsg func(string)
+
+	temp := func(text string) {
+		temps(text)
+		if _botKey != "" && iUserID != "" {
+			iSendMsg(text)
+		}
+	}
 	for filePath, fileInfo := range filesToRestore {
 		wg.Add(1)
 		pool <- struct{}{}
+
+		paths, fileName := filepath.Split(filepath.Join(targetFolder, filePath))
+		if mode == 1 {
+			if paths == "" {
+				paths = "/"
+			}
+			paths = strings.ReplaceAll(paths, "\\", "/")
+			if paths[len(paths)-1] == '/' {
+				paths = paths[:len(paths)-1]
+			}
+			if _, ok := checkPath[paths]; !ok {
+				userID, bearerToken := httpLocal.GetMyIDAndBearer(infoPath, thread, block, lang, timeOut, _botKey, _UserID)
+				files, _ := restoreSrvc.GetDriveItem(userID, bearerToken, paths)
+				checkPath[paths] = true
+				pathFiles[paths] = files
+			}
+			// log.Println(checkPath, paths, pathFiles, fileName, filePath)
+		}
+
 		go func(filePath string, fileInfo fileutil.FileInfo) {
 			defer wg.Done()
 			defer func() {
 				<-pool
 			}()
-			temps, botKey, iUserID := sendMsg()
-			var iSendMsg func(string)
-			tip := "`" + filePath + "`" + loc.print("startToUpload1")
-			if botKey != "" && iUserID != "" {
-				iSendMsg = botSend(botKey, iUserID, tip)
-			}
-			temp := func(text string) {
-				temps(text)
-				if botKey != "" && iUserID != "" {
-					iSendMsg(text)
+			if _, ok := pathFiles[paths][fileName]; !ok || mode == 0 {
+				tip := "`" + filePath + "`" + loc.print("startToUpload1")
+				if _botKey != "" && iUserID != "" {
+					iSendMsg = botSend(_botKey, iUserID, tip)
 				}
+				temp(tip)
+				userID, bearerToken := httpLocal.GetMyIDAndBearer(infoPath, thread, block, lang, timeOut, _botKey, _UserID)
+				username := strings.ReplaceAll(filepath.Base(infoPath), ".json", "")
+				restoreSrvc.SimpleUploadToOriginalLoc(userID, bearerToken, "replace", targetFolder, filePath, fileInfo, temp, locText, username)
+			} else {
+				tip := filePath + "已存在，自动跳过"
+				if _botKey != "" && iUserID != "" {
+					iSendMsg = botSend(_botKey, iUserID, tip)
+				}
+				temp(tip)
+				time.Sleep(time.Second * 3)
 			}
-			temp(tip)
-			userID, bearerToken := httpLocal.GetMyIDAndBearer(infoPath, thread, block, lang, timeOut, botKey, _UserID)
-			username := strings.ReplaceAll(filepath.Base(infoPath), ".json", "")
-			restoreSrvc.SimpleUploadToOriginalLoc(userID, bearerToken, "rename", targetFolder, filePath, fileInfo, temp, locText, username)
-
-			//printResp(resp)
 			defer temp("close")
 		}(filePath, fileInfo)
 	}
@@ -218,6 +248,7 @@ var block int
 var botKey string
 var _UserID string
 var thread int
+var mode int
 
 func main() {
 	var codeURL string
@@ -238,6 +269,7 @@ func main() {
 	flag.StringVar(&_UserID, "uid", "", "Use the telegram robot to monitor the upload in real time. Fill in the user ID of the receiver, such as 123456789")
 	flag.StringVar(&targetFolder, "r", "", "Set the directory you want to upload to onedrive")
 	flag.IntVar(&timeOut, "to", 60, "When uploading, the timeout of each block is 60s by default")
+	flag.IntVar(&mode, "m", 0, "Select the mode, 0 is to replace the file with the same name in onedrive, 1 is to skip, the default is 0")
 	flag.StringVar(&lang, "l", "en", "Set the software language, English by default")
 	// 从arguments中解析注册的flag。必须在所有flag都注册好而未访问其值时执行。未注册却使用flag -help时，会返回ErrHelp。
 	flag.Parse()

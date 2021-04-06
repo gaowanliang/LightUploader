@@ -1,5 +1,5 @@
-completeUpload = "%s上传完成，耗时 %d 秒，平均上传速度 %s/s"
-configCreateSuccess = "注册成功，已在运行目录下新建登录文件%s"
+completeUpload = "`%s`上传完成，耗时 `%d 秒`，平均上传速度 `%s/s`"
+configCreateSuccess = "注册成功，已在运行目录下新建登录文件`%s`"
 failToLink = "向OneDrive账户 `%s` 上传 `%s` 时出现连接问题，正在重试，当前为第%d次重试"
 failToLoadFiles = "无法从源加载文件 :%v"
 failToStore = "无法还原 :%v"
@@ -10,3 +10,4 @@ oneDriveUploadTip2 = "正在向OneDrive账户 `%s` 上传 `%s`\n大小:`%s` 已�
 startToUpload = "`%s` 开始上传，大小: `%s`"
 startToUpload1 = "开始上传至OneDrive"
 telegramSendError = "Telegram 发送错误:%s"
+existSkip = "已存在，自动跳过"
