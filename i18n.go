@@ -20,28 +20,20 @@ var bundle *i18n.Bundle
 func init() {
 	bundle = i18n.NewBundle(language.SimplifiedChinese)
 	bundle.RegisterUnmarshalFunc("toml", toml.Unmarshal)
-	_, err := os.Stat("i18n")
-	if err == nil {
-		rd, err := ioutil.ReadDir("i18n")
-		if err != nil {
-			log.Panic(err)
-		}
-		for _, fi := range rd {
-			if !fi.IsDir() && path.Ext(fi.Name()) == ".toml" {
-				bundle.LoadMessageFile("i18n/" + fi.Name())
-			}
-		}
-	}
-
-	rd, err := ioutil.ReadDir(".")
+	dir, err := os.Executable()
+	dropErr(err)
+	dir = filepath.Dir(dir)
+	// fmt.Println(dir)
+	rd, err := ioutil.ReadDir(dir)
 	if err != nil {
 		log.Panic(err)
 	}
 	for _, fi := range rd {
 		if !fi.IsDir() && path.Ext(fi.Name()) == ".toml" {
-			bundle.LoadMessageFile(fi.Name())
+			bundle.LoadMessageFile(path.Join(dir, fi.Name()))
 		}
 	}
+
 }
 
 func dropErr(err error) {
@@ -88,8 +80,10 @@ type Loc struct {
 }
 
 func (loc *Loc) init(locLanguage string) {
-	dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
+	dir, err := os.Executable()
 	dropErr(err)
+	dir = filepath.Dir(dir)
+	//fmt.Println(dir)
 	dir = filepath.Join(dir, fmt.Sprintf("%s.toml", locLanguage))
 	_, err = os.Stat(dir)
 	if err != nil {
@@ -121,6 +115,18 @@ func (loc *Loc) init(locLanguage string) {
 			data, err := ioutil.ReadAll(resp.Body)
 			dropErr(err)
 			ioutil.WriteFile(dir, data, 0644)
+		}
+	}
+	dir, err = os.Executable()
+	dropErr(err)
+	dir = filepath.Dir(dir)
+	rd, err := ioutil.ReadDir(dir)
+	if err != nil {
+		log.Panic(err)
+	}
+	for _, fi := range rd {
+		if !fi.IsDir() && path.Ext(fi.Name()) == ".toml" {
+			bundle.LoadMessageFile(path.Join(dir, fi.Name()))
 		}
 	}
 	loc.localize = i18n.NewLocalizer(bundle, locLanguage)

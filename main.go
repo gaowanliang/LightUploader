@@ -79,15 +79,7 @@ func restore(restoreSrvc *upload.RestoreService, filesToRestore map[string]fileu
 	pool := make(chan struct{}, threads)
 	checkPath := make(map[string]bool, 0)
 	pathFiles := make(map[string]map[string]bool, 0)
-	temps, _botKey, iUserID := sendMsg()
-	var iSendMsg func(string)
 
-	temp := func(text string) {
-		temps(text)
-		if _botKey != "" && iUserID != "" {
-			iSendMsg(text)
-		}
-	}
 	for filePath, fileInfo := range filesToRestore {
 		wg.Add(1)
 		pool <- struct{}{}
@@ -102,7 +94,7 @@ func restore(restoreSrvc *upload.RestoreService, filesToRestore map[string]fileu
 				paths = paths[:len(paths)-1]
 			}
 			if _, ok := checkPath[paths]; !ok {
-				userID, bearerToken := httpLocal.GetMyIDAndBearer(infoPath, thread, block, lang, timeOut, _botKey, _UserID)
+				userID, bearerToken := httpLocal.GetMyIDAndBearer(infoPath, thread, block, lang, timeOut, botKey, _UserID)
 				files, _ := restoreSrvc.GetDriveItem(userID, bearerToken, paths)
 				checkPath[paths] = true
 				pathFiles[paths] = files
@@ -115,17 +107,25 @@ func restore(restoreSrvc *upload.RestoreService, filesToRestore map[string]fileu
 			defer func() {
 				<-pool
 			}()
-			if _, ok := pathFiles[paths][fileName]; !ok || mode == 0 {
-				tip := "`" + filePath + "`" + loc.print("startToUpload1")
+			temps, _botKey, iUserID := sendMsg()
+			var iSendMsg func(string)
+			tip := "`" + filePath + "`" + loc.print("startToUpload1")
+			if _botKey != "" && iUserID != "" {
+				iSendMsg = botSend(_botKey, iUserID, tip)
+			}
+			temp := func(text string) {
+				temps(text)
 				if _botKey != "" && iUserID != "" {
-					iSendMsg = botSend(_botKey, iUserID, tip)
+					iSendMsg(text)
 				}
+			}
+			if _, ok := pathFiles[paths][fileName]; !ok || mode == 0 {
 				temp(tip)
 				userID, bearerToken := httpLocal.GetMyIDAndBearer(infoPath, thread, block, lang, timeOut, _botKey, _UserID)
 				username := strings.ReplaceAll(filepath.Base(infoPath), ".json", "")
 				restoreSrvc.SimpleUploadToOriginalLoc(userID, bearerToken, "replace", targetFolder, filePath, fileInfo, temp, locText, username)
 			} else {
-				tip := filePath + "已存在，自动跳过"
+				tip = filePath + "已存在，自动跳过"
 				if _botKey != "" && iUserID != "" {
 					iSendMsg = botSend(_botKey, iUserID, tip)
 				}
