@@ -99,7 +99,8 @@ func (rs *RestoreService) SimpleUploadToOriginalLoc(userId string, bearerToken s
 		}
 
 		if err != nil {
-			log.Panicf(locText("failToStore"), err)
+			sendMsg(fmt.Sprintf(locText("filenameFail"), filePath))
+			return nil
 		}
 		if resp.Body != nil {
 			defer resp.Body.Close()

@@ -22,7 +22,8 @@ func (rs *RestoreService) recoverableUpload(userID string, bearerToken string, c
 	//1. Get recoverable upload session for the current file path 获取当前文件路径的可压缩上载会话
 	uploadSessionData, err := rs.getUploadSession(userID, bearerToken, conflictOption, targetFolder, filePath)
 	if err != nil {
-		log.Panicf(locText("failToStore"), err)
+		sendMsg(fmt.Sprintf(locText("filenameFail"), filePath))
+		return nil
 	}
 
 	//2. Get the upload url returned as a response from the recoverable upload session above. 从上面的可压缩上载会话获取作为响应返回的上载url。
