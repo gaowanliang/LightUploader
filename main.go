@@ -223,7 +223,7 @@ func botSend(botKey string, iuserID string, initText string) func(string) {
 		ok, _ = jsonparser.GetBoolean(body, "ok")
 		if !ok {
 			description, _ := jsonparser.GetString(body, "description")
-			if !strings.Contains(string(body), "message is not modified") {
+			if !strings.Contains(string(body), "message is not modified") && !strings.Contains(string(body), "Too Many Requests") {
 				log.Panicf(loc.print("telegramSendError"), description)
 			}
 		}
