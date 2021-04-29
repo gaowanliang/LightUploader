@@ -12,9 +12,10 @@ import (
 )
 
 const (
-	baseURL                       = "https://graph.microsoft.com/v1.0"
 	statusInsufficientStorage int = 507
 )
+
+var BaseURL = "https://graph.microsoft.com/v1.0"
 
 // OneDrive is the entry point for the client. It manages the communication with
 // Microsoft OneDrive Graph API
@@ -28,7 +29,7 @@ type OneDrive struct {
 func NewOneDriveClient(c *http.Client, debug bool) *OneDrive {
 	drive := OneDrive{
 		Client:  c,
-		BaseURL: baseURL,
+		BaseURL: BaseURL,
 	}
 	return &drive
 }

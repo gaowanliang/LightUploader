@@ -126,6 +126,7 @@ func (loc *Loc) init(locLanguage string) {
 	}
 	for _, fi := range rd {
 		if !fi.IsDir() && path.Ext(fi.Name()) == ".toml" {
+			// log.Println(path.Join(dir, fi.Name()))
 			bundle.LoadMessageFile(path.Join(dir, fi.Name()))
 		}
 	}

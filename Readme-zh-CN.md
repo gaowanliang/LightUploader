@@ -1,9 +1,8 @@
-# OneDriveUploader
+# LightUploader
 
-萌咖大佬写了一个 [非常好的版本](https://github.com/MoeClub/OneList/tree/master/OneDriveUploader) ，可惜并没有开源，而且已经好久都没有更新了。这个项目作为从 [DownloadBot](https://github.com/gaowanliang/DownloadBot) 中独立出来的一个简易上传工具，使得上传到OneDrive更加方便。
+萌咖大佬写了一个 [非常好的版本](https://github.com/MoeClub/OneList/tree/master/OneDriveUploader) ，可惜并没有开源，而且已经好久都没有更新了。这个项目作为从 [DownloadBot](https://github.com/gaowanliang/DownloadBot) 中独立出来的一个简易上传工具，旨在用更轻量化的方式让在各种平台都能快速的向各个网络硬盘上传数据。
 
-
-- 支持 国际版, 个人版(家庭版).
+- 支持 OneDrive 国际版, 个人版(家庭版)，世纪互联，Google Drive（测试版，下面的命令并未完全支持）.
 - 支持上传文件和文件夹到指定目录,并保持上传前的目录结构.
 - 支持命令参数使用, 方便外部程序调用.
 - 支持自定义上传分块大小.
@@ -13,31 +12,32 @@
 - 支持通过Telegram Bot实时监控上传进度，方便使用全自动下载脚本时对上传的实时监控
 
 ## 授权
-### 通过下面URL登录 (右键新标签打开)
-#### 国际版, 个人版(家庭版)
-[https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=ad5e65fd-856d-4356-aefc-537a9700c137&response_type=code&redirect_uri=http://localhost/onedrive-login&response_mode=query&scope=offline_access%20User.Read%20Files.ReadWrite.All](https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=ad5e65fd-856d-4356-aefc-537a9700c137&response_type=code&redirect_uri=http://localhost/onedrive-login&response_mode=query&scope=offline_access%20User.Read%20Files.ReadWrite.All)
+详见[wiki](https://github.com/gaowanliang/LightUploader/wiki)
 
 
 ### 初始化配置文件
 ```bash
-# 国际版
-OneDriveUploader -a "url"
-# 国际版，并使用中文语言包
-OneDriveUploader -a "url" -l zh-CN
-# 个人版(家庭版)
-OneDriveUploader -a "url" -v 1
-# 中国版(世纪互联) 目前设计中，暂不可用
-OneDriveUploader -a "url" -v 2
+# OneDrive 国际版
+LightUploader -a "url"
+# OneDrive 国际版，并使用中文语言包
+LightUploader -a "url" -l zh-CN
+# OneDrive 个人版(家庭版)
+LightUploader -a "url" -v 1
+# OneDrive 中国版(世纪互联)，并使用中文语言包
+LightUploader -a "url" -v 2
 
 # 在浏览器地址栏中获取以 http://loaclhost 开头的整个url内容
 # 将获取的完整url内容替换命令中的 url 三个字母
 # 每次产生的 url 只能用一次, 重试请重新获取 url
 # 此操作将会自动初始化的配置文件
+
+# Google Drive
+LightUploader -a "url" -v 3
 ```
 
 ## 使用
 ```c
-Usage of OneDriveUploader:
+Usage of LightUploader:
   -a string
         // 初始化授权
         Setup and Init auth.json.
@@ -61,22 +61,22 @@ Usage of OneDriveUploader:
   -uid string
         // 使用Telegram机器人实时监控上传，此处需填写接收人的userID，形如123456789
   -m int
-        // 选择模式，0为替换OneDrive中同名文件，1为跳过，默认为0
+        // 选择模式，0为替换网盘中同名文件，1为跳过，默认为0
   -v int
-        // 选择版本，其中0为国际版，1为个人版(家庭版)，默认为0
+        // 选择版本，其中0为 OneDrive 国际版，1为 OneDrive 个人版(家庭版)，2为 OneDrive 世纪互联，3为Google Drive，默认为0
 ```
 
 ## 配置
 ```jsonc
 {
+    // 网盘类型
+    "Drive":"OneDrive",
     // 授权令牌
     "RefreshToken": "1234564567890ABCDEF",
     // 最大线程数.(同时上传文件的数量)
     "ThreadNum": 2,
     // 最大上传分块大小.(每次上传文件的最大分块大小,网络不好建议调低. 单位:MB)
     "BlockSize": 10,
-    // 最大单文件大小.(目前: 个人版(家庭版)单文件限制为100GB; 其他版本单文件限制为15GB,微软将逐步更新为100GB. 单位:GB)
-    "SigleFile": 100,
     // 如果是中国版(世纪互联), 此项应为 true.
     "MainLand": false,
     //软件语言
@@ -96,31 +96,31 @@ Usage of OneDriveUploader:
 # 一些示例:
 
 # 将同目录下的 mm00.jpg 文件上传到 OneDrive 网盘根目录
-OneDriveUploader -c xxx.json -f "mm00.jpg"
+LightUploader -c xxx.json -f "mm00.jpg"
 
 # 将同目录下的 Download 文件夹上传到 OneDrive 网盘根目录
-OneDriveUploader -c xxx.json -f "Download" 
+LightUploader -c xxx.json -f "Download" 
 
 # 将同目录下的 Download 文件夹上传到 OneDrive 网盘Test目录中
-OneDriveUploader -c xxx.json -f "Download" -r "Test"
+LightUploader -c xxx.json -f "Download" -r "Test"
 
 # 将同目录下的 Download 文件夹上传到 OneDrive 网盘根目录中, 使用 10 线程
-OneDriveUploader -c xxx.json -t 10 -f "Download" 
+LightUploader -c xxx.json -t 10 -f "Download" 
 
 # 将同目录下的 Download 文件夹上传到 OneDrive 网盘根目录中, 使用 10 线程，并跳过同名文件
-OneDriveUploader -c xxx.json -t 10 -f "Download" -m 1
+LightUploader -c xxx.json -t 10 -f "Download" -m 1
 
 # 将同目录下的 Download 文件夹上传到 OneDrive 网盘根目录中, 使用 10 线程，同时设置超时时间为30秒
-OneDriveUploader -c xxx.json -t 10 -f "Download" -to 30
+LightUploader -c xxx.json -t 10 -f "Download" -to 30
 
 # 将同目录下的 Download 文件夹上传到 OneDrive 网盘根目录中, 使用 10 线程，同时使用 Telegram Bot 实时监控上传进度
-OneDriveUploader -c xxx.json -t 10 -f "Download" -tgbot "123456:xxxxxxxx" -uid 123456789
+LightUploader -c xxx.json -t 10 -f "Download" -tgbot "123456:xxxxxxxx" -uid 123456789
 
 # 将同目录下的 Download 文件夹上传到 OneDrive 网盘根目录中, 使用 10 线程，同时使用配置文件中的 Telegram Bot 参数载入程序实时监控上传进度（前提是配置文件中含有Telegram Bot 的参数）
-OneDriveUploader -c xxx.json -t 10 -f "Download" -tgbot "1"
+LightUploader -c xxx.json -t 10 -f "Download" -tgbot "1"
 
 # 将同目录下的 Download 文件夹上传到 OneDrive 网盘根目录中, 使用 15 线程, 并设置分块大小为 20M
-OneDriveUploader -c xxx.json -t 15 -b 20 -f "Download" 
+LightUploader -c xxx.json -t 15 -b 20 -f "Download" 
 
 ```
 

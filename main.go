@@ -1,13 +1,17 @@
 package main
 
 import (
+	"bufio"
 	"encoding/json"
 	"flag"
 	"fmt"
+	"github.com/buger/jsonparser"
+	"github.com/gosuri/uilive"
 	"io/ioutil"
 	"log"
 	"main/api/restore/upload"
 	"main/fileutil"
+	"main/googledrive"
 	httpLocal "main/graph/net/http"
 	"net/http"
 	"net/url"
@@ -17,14 +21,14 @@ import (
 	"strings"
 	"sync"
 	"time"
-
-	"github.com/buger/jsonparser"
-	"github.com/gosuri/uilive"
 )
 
 var loc Loc
 
 func ApplyForNewPass(url string, ms int) string {
+	if ms == 2 {
+		httpLocal.ChangeCNURL()
+	}
 	return httpLocal.NewPassCheck(url, ms, lang)
 }
 
@@ -259,9 +263,9 @@ func main() {
 
 	// StringVar用指定的名称、控制台参数项目、默认值、使用信息注册一个string类型flag，并将flag的值保存到p指向的变量
 
-	flag.StringVar(&codeURL, "a", "", "Jump to the https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=ad5e65fd-856d-4356-aefc-537a9700c137&response_type=code&redirect_uri=http://localhost/onedrive-login&response_mode=query&scope=offline_access%20User.Read%20Files.ReadWrite.All after logging in to the website (you need to use double quotation marks to wrap the URL when entering the URL)")
-	flag.IntVar(&ms, "v", 0, "Select the version, where 0 is the business version and 1 is the personal version (home version). The default is 0")
-	flag.StringVar(&configFile, "c", "", "Login config file location")
+	flag.StringVar(&codeURL, "a", "", "Please refer to \"https://github.com/gaowanliang/LightUploader/wiki\"")
+	flag.IntVar(&ms, "v", 0, "Select the version, where 0 is the business version, 1 is the personal version (home version), 2 is 21vianet (CN) version, 3 is Google Drive. The default is 0")
+	flag.StringVar(&configFile, "c", "", "Authorize config file location")
 	flag.StringVar(&folder, "f", "", "Files / folders to upload")
 	flag.IntVar(&thread, "t", 3, "The number of threads")
 	flag.IntVar(&block, "b", 10, "User defined upload block size can improve network throughput. Limited by disk performance and network speed, the default is 10 (unit: MB)")
@@ -288,6 +292,10 @@ func main() {
 		err = decoder.Decode(&info)
 		if err != nil {
 			log.Panicln(err.Error())
+		}
+
+		if info.MainLand {
+			httpLocal.ChangeCNURL()
 		}
 
 		if info.Language != "en" && lang == "en" {
@@ -329,21 +337,46 @@ func main() {
 		if botKey != "" && _UserID != "" {
 			sendMsg = botSend(botKey, _UserID, fmt.Sprintf(loc.print("startToUpload"), folder, fileutil.Byte2Readable(float64(size))))
 		}
+		switch info.Drive {
+		case "OneDrive":
+			Upload(strings.ReplaceAll(configFile, "\\", "/"), strings.ReplaceAll(folder, "\\", "/"), targetFolder, thread, func() (func(text string), string, string) {
+				if botKey != "" && _UserID != "" {
+					return func(text string) {
+						if text != "close" {
+							_, _ = fmt.Fprintf(writer, "%s\n", text)
+						}
+					}, botKey, _UserID
+				} else {
+					return func(text string) {
+						if text != "close" {
+							_, _ = fmt.Fprintf(writer, "%s\n", text)
+						}
+					}, "", ""
+				}
+			}, func(text string) string {
+				return loc.print(text)
+			})
+		case "GoogleDrive":
+			googledrive.Upload(strings.ReplaceAll(configFile, "\\", "/"), strings.ReplaceAll(folder, "\\", "/"), func() (func(text string), string, string, func(string, string, string) func(string)) {
+				if botKey != "" && _UserID != "" {
+					return func(text string) {
+						if text != "close" {
+							_, _ = fmt.Fprintf(writer, "%s\n", text)
+						}
+					}, botKey, _UserID, botSend
+				} else {
+					return func(text string) {
+						if text != "close" {
+							_, _ = fmt.Fprintf(writer, "%s\n", text)
+						}
+					}, "", "", nil
+				}
+			}, func(text string) string {
+				return loc.print(text)
+			}, thread, block, lang, timeOut, botKey, _UserID)
 
-		Upload(strings.ReplaceAll(configFile, "\\", "/"), strings.ReplaceAll(folder, "\\", "/"), targetFolder, thread, func() (func(text string), string, string) {
-			if botKey != "" && _UserID != "" {
-				return func(text string) {
-					_, _ = fmt.Fprintf(writer, "%s\n", text)
-				}, botKey, _UserID
-			} else {
-				return func(text string) {
-					_, _ = fmt.Fprintf(writer, "%s\n", text)
-				}, "", ""
-			}
+		}
 
-		}, func(text string) string {
-			return loc.print(text)
-		})
 		cost := time.Now().Unix() - startTime
 		speed := fileutil.Byte2Readable(float64(size) / float64(cost))
 		_, _ = fmt.Fprintf(writer, loc.print("completeUpload"), folder, cost, speed)
@@ -353,7 +386,20 @@ func main() {
 	} else {
 		loc.init(lang)
 		if codeURL == "" {
-			flag.PrintDefaults()
+			if ms != 3 {
+				flag.PrintDefaults()
+			} else {
+				log.Printf(loc.print("googleDriveGetAccess"), googledrive.GetURL())
+				inputReader := bufio.NewReader(os.Stdin)
+				code, err := inputReader.ReadString('\n')
+				if err != nil {
+					fmt.Println("There ware errors reading,exiting program.")
+					return
+				}
+				mail := googledrive.CreateNewInfo(code, lang)
+				log.Println(loc.print("googleDriveOAuthFileCreateSuccess") + mail)
+			}
+
 		} else {
 			log.Printf(loc.print("configCreateSuccess"), ApplyForNewPass(codeURL, ms))
 		}
@@ -369,4 +415,6 @@ SET GOOS=linux
 SET GOARCH=amd64
 go build -o OneDriveUploader .
 /usr/local/bin
+
+set HTTPS_PROXY=http://127.0.0.1:2334
 */

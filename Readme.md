@@ -1,11 +1,11 @@
 [简体中文](Readme-zh-CN.md)
-# OneDriveUploader
+# LightUploader
 
-MoeClub wrote a [very good version](https://github.com/MoeClub/OneList/tree/master/OneDriveUploader), but unfortunately it's not open source and hasn't been updated in a while. This project is a simple upload tool separate from [DownloadBot](https://github.com/gaowanliang/DownloadBot), making it easier to upload.
+MoeClub wrote a [very good version](https://github.com/MoeClub/OneList/tree/master/OneDriveUploader), but unfortunately it's not open source and hasn't been updated in a while. This project is a simple upload tool separate from [DownloadBot](https://github.com/gaowanliang/DownloadBot), designed to be a lightweight way to quickly upload data to various network drives on all platforms.
 
 ## Features
 
-- Supports Business, Personal (Home) versions.
+- Supports OneDrive Business, Personal (Home) versions, 21vianet (CN) version, Google Drive (Beta).
 - Support for uploading files and folders to specified directories, keeping the directory structure as it was before the upload.
 - Supports the use of command parameters for external applications.
 - Support for customising the upload chunk size.
@@ -16,35 +16,37 @@ MoeClub wrote a [very good version](https://github.com/MoeClub/OneList/tree/mast
 
 
 ## Authorize
-### Login via the following URL (right click to open a new tab)
-#### Business, Personal (Home) versions
-[https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=ad5e65fd-856d-4356-aefc-537a9700c137&response_type=code&redirect_uri=http://localhost/onedrive-login&response_mode=query&scope=offline_access%20User.Read%20Files.ReadWrite.All](https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=ad5e65fd-856d-4356-aefc-537a9700c137&response_type=code&redirect_uri=http://localhost/onedrive-login&response_mode=query&scope=offline_access%20User.Read%20Files.ReadWrite.All)
+See [wiki](https://github.com/gaowanliang/LightUploader/wiki) for details
 
 
 
 ### Initialization profile
 ```bash
-# Business
-OneDriveUploader -a "url"
+# OneDrive Business
+LightUploader -a "url"
 
-# Business, and use Chinese language pack
-OneDriveUploader -a "url" -l zh-CN
+# OneDrive Business, and use Chinese language pack
+LightUploader -a "url" -l zh-CN
 
-# Personal (Home)
-OneDriveUploader -a "url" -v 1
+# OneDrive Personal (Home)
+LightUploader -a "url" -v 1
 
-# The China Version (Century Internet) is currently in design and is not available
-OneDriveUploader -a "url" -v 2
+# OneDrive 21vianet (CN) version, and use Chinese language pack
+LightUploader -a "url" -v 2 -l zh-CN
 
 # Get the entire url in the browser address bar starting with http://loaclhost
 # Replace the full url with the three letters of the "url" in the command
 # Each url generated can only be used once, try again to retrieve the url
 # This action will automatically initialise the configuration file
+
+# Google Drive
+LightUploader -a "url" -v 3
+
 ```
 
 ## Use
 ```c
-Usage of OneDriveUploader:
+Usage of LightUploader:
   -a string
         //Setup and Init auth.json.
   -b string
@@ -67,14 +69,15 @@ Usage of OneDriveUploader:
   -uid string
         // Use the Telegram bot to monitor uploads in real time, here you need to fill in the recipient's userID, shaped like 123456789
   -m int
-        // Select the mode, 0 is to replace the file with the same name in onedrive, 1 is to skip, the default is 0
+        // Select the mode, 0 is to replace the file with the same name in cloud drive, 1 is to skip, the default is 0
   -v int
-        // Select the version, where 0 is the Business version and 1 is the personal (home) version, the default is 0
+        // Select the version, where 0 is the OneDrive Business version and 1 is the OneDrive Personal (Home) version, 2 is OneDrive 21vianet (CN) version, 3 is Google Drive, the default is 0
 ```
 
 ## Config
 ```jsonc
 {
+    "Drive":"OneDrive",
     // Authorisation tokens
     "RefreshToken": "1234564567890ABCDEF",
     // Maximum number of threads. (Number of simultaneous file uploads)
@@ -102,32 +105,32 @@ Note that when a configuration file is used at the same time and the parameters 
 # Some examples:
 
 # Upload the mm00.jpg file from the same directory to the root of the OneDrive
-OneDriveUploader -c xxx.json -f "mm00.jpg"
+LightUploader -c xxx.json -f "mm00.jpg"
 
 # Upload the Download folder from the same directory to the root of the OneDrive
-OneDriveUploader -c xxx.json -f "Download" 
+LightUploader -c xxx.json -f "Download" 
 
 # Upload the Download folder from the same directory to the Test directory of the OneDrive
-OneDriveUploader -c xxx.json -f "Download" -r "Test"
+LightUploader -c xxx.json -f "Download" -r "Test"
 
 # Upload the Download folder from the same directory to the root of the OneDrive, using 10 threads
-OneDriveUploader -c xxx.json -t 10 -f "Download" 
+LightUploader -c xxx.json -t 10 -f "Download" 
 
 # Upload the download folder in the same directory to the root directory of onedrive, use 10 threads, and skip the file with the same name
-OneDriveUploader -c xxx.json -t 10 -f "Download" -m 1
+LightUploader -c xxx.json -t 10 -f "Download" -m 1
 
 # Upload the download folder in the same directory to the root directory of onedrive, use 10 threads, and set the timeout to 30 seconds
-OneDriveUploader -c xxx.json -t 10 -f "Download" -to 30
+LightUploader -c xxx.json -t 10 -f "Download" -to 30
 
 # Upload the Download folder from the same directory to the root of the OneDrive, using 10 threads, while using Telegram Bot to monitor the progress of the upload in real time
-OneDriveUploader -c xxx.json -t 10 -f "Download" -tgbot "123456:xxxxxxxx" -uid 123456789
+LightUploader -c xxx.json -t 10 -f "Download" -tgbot "123456:xxxxxxxx" -uid 123456789
 
 # Upload the download folder in the same directory to the root directory of onedrive network disk, use 10 threads, and use the telegram BOT parameter loader in the configuration file to monitor the upload progress in real time (provided that the configuration file contains the parameters of telegram BOT)
-OneDriveUploader -c xxx.json -t 10 -f "Download" -tgbot "1"
+LightUploader -c xxx.json -t 10 -f "Download" -tgbot "1"
 
 
 # Upload the Download folder from the same directory to the root of the OneDrive, using 15 threads, and setting the chunk size to 20M
-OneDriveUploader -c xxx.json -t 15 -b 20 -f "Download" 
+LightUploader -c xxx.json -t 15 -b 20 -f "Download" 
 ```
 
 ## Note
