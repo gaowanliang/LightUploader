@@ -279,7 +279,6 @@ func main() {
 	flag.Parse()
 
 	loc = Loc{}
-
 	if configFile != "" && folder != "" {
 		filePtr, err := os.Open(configFile)
 		if err != nil {

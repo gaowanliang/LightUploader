@@ -2,9 +2,6 @@ package main
 
 import (
 	"fmt"
-	"github.com/BurntSushi/toml"
-	"github.com/nicksnyder/go-i18n/v2/i18n"
-	"golang.org/x/text/language"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -13,6 +10,10 @@ import (
 	"path/filepath"
 	"regexp"
 	"time"
+
+	"github.com/BurntSushi/toml"
+	"github.com/nicksnyder/go-i18n/v2/i18n"
+	"golang.org/x/text/language"
 )
 
 var bundle *i18n.Bundle
@@ -118,6 +119,7 @@ func (loc *Loc) init(locLanguage string) {
 		}
 	}
 	dir, err = os.Executable()
+	// log.Println(dir)
 	dropErr(err)
 	dir = filepath.Dir(dir)
 	rd, err := ioutil.ReadDir(dir)

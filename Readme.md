@@ -5,7 +5,7 @@ MoeClub wrote a [very good version](https://github.com/MoeClub/OneList/tree/mast
 
 ## Features
 
-- Supports OneDrive Business, Personal (Home) versions, 21vianet (CN) version, Google Drive (Beta).
+- Supports OneDrive Business, Personal (Home) versions, 21vianet (CN) version, Google Drive.
 - Support for uploading files and folders to specified directories, keeping the directory structure as it was before the upload.
 - Supports the use of command parameters for external applications.
 - Support for customising the upload chunk size.
@@ -40,7 +40,7 @@ LightUploader -a "url" -v 2 -l zh-CN
 # This action will automatically initialise the configuration file
 
 # Google Drive
-LightUploader -a "url" -v 3
+LightUploader -v 3
 
 ```
 

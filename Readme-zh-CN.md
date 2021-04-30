@@ -2,7 +2,7 @@
 
 萌咖大佬写了一个 [非常好的版本](https://github.com/MoeClub/OneList/tree/master/OneDriveUploader) ，可惜并没有开源，而且已经好久都没有更新了。这个项目作为从 [DownloadBot](https://github.com/gaowanliang/DownloadBot) 中独立出来的一个简易上传工具，旨在用更轻量化的方式让在各种平台都能快速的向各个网络硬盘上传数据。
 
-- 支持 OneDrive 国际版, 个人版(家庭版)，世纪互联，Google Drive（测试版，下面的命令并未完全支持）.
+- 支持 OneDrive 国际版, 个人版(家庭版)，世纪互联，Google Drive.
 - 支持上传文件和文件夹到指定目录,并保持上传前的目录结构.
 - 支持命令参数使用, 方便外部程序调用.
 - 支持自定义上传分块大小.
@@ -24,7 +24,7 @@ LightUploader -a "url" -l zh-CN
 # OneDrive 个人版(家庭版)
 LightUploader -a "url" -v 1
 # OneDrive 中国版(世纪互联)，并使用中文语言包
-LightUploader -a "url" -v 2
+LightUploader -a "url" -v 2 -l zh-CN
 
 # 在浏览器地址栏中获取以 http://loaclhost 开头的整个url内容
 # 将获取的完整url内容替换命令中的 url 三个字母
@@ -32,7 +32,7 @@ LightUploader -a "url" -v 2
 # 此操作将会自动初始化的配置文件
 
 # Google Drive
-LightUploader -a "url" -v 3
+LightUploader -v 3
 ```
 
 ## 使用

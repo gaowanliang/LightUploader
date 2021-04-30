@@ -253,6 +253,8 @@ type MediaOptions struct {
 	ChunkSize int
 }
 
+
+
 // ProcessMediaOptions stores options from opts in a MediaOptions.
 // It is not used by developers directly.
 func ProcessMediaOptions(opts []MediaOption) *MediaOptions {
