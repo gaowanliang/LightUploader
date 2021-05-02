@@ -5,8 +5,6 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"github.com/buger/jsonparser"
-	"github.com/gosuri/uilive"
 	"io/ioutil"
 	"log"
 	"main/api/restore/upload"
@@ -21,6 +19,9 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/buger/jsonparser"
+	"github.com/gosuri/uilive"
 )
 
 var loc Loc
@@ -238,7 +239,8 @@ func botSend(botKey string, iuserID string, initText string) func(string) {
 func DirSize(path string) (int64, error) {
 	var size int64
 	err := filepath.Walk(path, func(_ string, info os.FileInfo, err error) error {
-		if !info.IsDir() {
+
+		if info != nil && !info.IsDir() {
 			size += info.Size()
 		}
 		return err
