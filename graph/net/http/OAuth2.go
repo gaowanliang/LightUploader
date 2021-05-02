@@ -59,8 +59,11 @@ func NewPassCheck(oauth2URL string, ms int, lang string) string {
 	}
 
 	if err != nil {
-		log.Println(string(body))
-		log.Panicln(err)
+		mail, err = jsonparser.GetString(body, "userPrincipalName")
+		if err != nil {
+			log.Println(string(body))
+			log.Panicln(err)
+		}
 	}
 	err = os.Rename("./amazing.json", "./"+mail+".json")
 	if err != nil {
@@ -133,7 +136,8 @@ func getAccessToken(oauth2URL string, ms int, lang string) string {
 	if err != nil {
 		log.Println(string(body))
 		log.Println(code)
-		log.Panicln(err)
+		errorMsg, _ := jsonparser.GetString(body, "error_description")
+		log.Panicln(errorMsg)
 	}
 	//log.Println(accessToken)
 	refreshToken, err := jsonparser.GetString(body, "refresh_token")
