@@ -414,7 +414,7 @@ func main() {
 SET CGO_ENABLED=0
 SET GOOS=linux
 SET GOARCH=amd64
-go build -o OneDriveUploader .
+go build -o LightUploader .
 /usr/local/bin
 
 set HTTPS_PROXY=http://127.0.0.1:2334

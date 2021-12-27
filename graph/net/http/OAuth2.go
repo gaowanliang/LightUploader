@@ -73,11 +73,32 @@ func NewPassCheck(oauth2URL string, ms int, lang string) string {
 	return "./" + mail + ".json"
 }
 
+type UserData struct {
+	infoPath  string `json:"infoPath"`
+	Thread    int    `json:"Thread"`
+	BlockSize int    `json:"BlockSize"`
+	Language  string `json:"Language"`
+	TimeOut   int    `json:"TimeOut"`
+	BotKey    string `json:"BotKey"`
+	UserID    string `json:"UserID"`
+}
+
+var tempUserData UserData
+
 // GetMyIDAndBearer is get microsoft ID and access Certificate
 func GetMyIDAndBearer(infoPath string, Thread int, BlockSize int, Language string, TimeOut int, BotKey string, UserID string) (string, string) {
 	MyID := ""
 	Bearer := ""
 	_, err := os.Stat(infoPath)
+	tempUserData = UserData{
+		infoPath:  infoPath,
+		Thread:    Thread,
+		BlockSize: BlockSize,
+		Language:  Language,
+		TimeOut:   TimeOut,
+		BotKey:    BotKey,
+		UserID:    UserID,
+	}
 	Bearer = refreshAccessToken(infoPath, Thread, BlockSize, Language, TimeOut, BotKey, UserID)
 	url := GraphURL
 	req, err := http.NewRequest("GET", url, nil)
@@ -100,6 +121,10 @@ func GetMyIDAndBearer(infoPath string, Thread int, BlockSize int, Language strin
 	// log.Println(MyID)
 
 	return MyID, Bearer
+}
+
+func GetBearer() string {
+	return refreshAccessToken(tempUserData.infoPath, tempUserData.Thread, tempUserData.BlockSize, tempUserData.Language, tempUserData.TimeOut, tempUserData.BotKey, tempUserData.UserID)
 }
 
 func getAccessToken(oauth2URL string, ms int, lang string) string {
