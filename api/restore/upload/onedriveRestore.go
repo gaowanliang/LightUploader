@@ -13,6 +13,7 @@ import (
 	"net/url"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
 const (
@@ -74,7 +75,8 @@ func (rs *RestoreService) SimpleUploadToOriginalLoc(userId string, bearerToken s
 		//log.Printf("Processing Small File: %s", filePath)
 		sendMsg(fmt.Sprintf(locText("oneDriveSmallFile"), filePath, username))
 		targetPath := strings.ReplaceAll(filepath.Join(targetFolder, filePath), "\\", "/")
-
+		startTime := time.Now().Unix()
+		_size, err := fileutil.GetFileSize(filePath)
 		uploadPath := fmt.Sprintf(simpleUploadPath, userId, targetPath)
 		req, err := rs.NewRequest("PUT", uploadPath, getSimpleUploadHeader(bearerToken), fileInfo.FileData)
 		if err != nil {
@@ -111,7 +113,8 @@ func (rs *RestoreService) SimpleUploadToOriginalLoc(userId string, bearerToken s
 		if err != nil {
 			log.Panicf(locText("failToStore"), err)
 		}
-		sendMsg("close")
+		timeUnix := time.Now().UnixNano()
+		sendMsg("close=" + fmt.Sprintf(fmt.Sprintf(locText("completeUpload"), filePath, time.Now().Unix()-startTime, byte2Readable(float64(_size)/float64(time.Now().UnixNano()-timeUnix)*float64(1000000000)))))
 		return respMap
 	}
 

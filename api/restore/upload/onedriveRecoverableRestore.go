@@ -75,10 +75,13 @@ func (rs *RestoreService) recoverableUpload(userID string, bearerToken string, c
 		//3b. make a call to the upload url with the file part based on the offset. 使用基于偏移量的文件部分调用上载url。
 		var resp *http.Response
 		for errCount := 1; errCount < 10; errCount++ {
-			bearerToken = http2.GetBearer() //解决长时下载时，Bearer超时的问题
+			bearerToken = http2.GetBearer() //解决长时下载时，Bearer超时的问题，这里采用超时一次就重新获取一次token的方案
 			resp, err = rs.uploadFilePart(uploadURL, filePath, bearerToken, *filePartInBytes, sOffset, isLastChunk)
 			if err != nil {
-				sendMsg(fmt.Sprintf(locText("failToLink"), username, filePath, errCount))
+				sendMsg("close|" + fmt.Sprintf(locText("failToLink"), username, filePath, errCount))
+				// close 用作输出时定位，带有 close 在输出时不会被刷新走
+				// close= 表示文件传输结束，此时会同步删除tg发出的消息
+				// close| 则不会删除消息
 			} else {
 				break
 			}
@@ -99,7 +102,8 @@ func (rs *RestoreService) recoverableUpload(userID string, bearerToken string, c
 		uploadResp = append(uploadResp, respMap)
 		debug.FreeOSMemory()
 	}
-	sendMsg("close")
+
+	sendMsg("close=" + fmt.Sprintf(fmt.Sprintf(locText("completeUpload"), filePath, time.Now().Unix()-startTime, byte2Readable(float64(_size)/float64(time.Now().UnixNano()-timeUnix)*float64(1000000000)))))
 	return uploadResp
 }
 

@@ -9,6 +9,7 @@ googleDriveGetAccess = "Please open the following website, log in to Google acco
 googleDriveOAuthFileCreateSuccess = "Google Drive OAuth2 file created successfully, save to:"
 googleDriveUploadTip = "Google Drive account `%s` \n Uploading `%s` Time: %d s"
 googleDriveUploadTip1 = "Google Drive account `%s` \nUploading `%s`\nSize:`%s` Complete: `%s` Progress: *『%d/%d』*  \nSpeed:`%s` \nTime: `%d s`"
+noGoogleDriveInfo = "No Google Drive upload configuration, do you need to create a new configuration?"
 oneDriveBigFile = "File: `%s` Start upload to OneDrive\nAccounts:`%s`\nFile over 4MB, go to large file channel"
 oneDriveSmallFile = "File: `%s` Start upload to OneDrive\nAccounts:`%s`\nFile less than 4MB, go to small file channel, uploading in progress"
 oneDriveUploadTip1 = "OneDrive account `%s` \nUploading `%s`\nSize:`%s` Complete: `%s` Progress: *『%d/%d』*  \nSpeed:`%s/s` \nTime: `%d s`"
