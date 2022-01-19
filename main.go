@@ -148,7 +148,7 @@ func restore(restoreSrvc *upload.RestoreService, filesToRestore map[string]fileu
 				temp(tip)
 				time.Sleep(time.Second * 3)
 			}
-			defer temp("close")
+			defer temp("close=")
 		}(filePath, fileInfo)
 	}
 	wg.Wait()

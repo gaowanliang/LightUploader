@@ -355,7 +355,7 @@ func uploadFile(srv *drive.Service, filePath string, filename string, tempFolder
 			log.Panicln(err)
 		}
 
-		defer temp("close")
+		defer temp("close=")
 	}()
 
 }

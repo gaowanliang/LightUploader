@@ -7,5 +7,5 @@ info
 *.exe
 od
 TestUploadFolder
-OneDriveUploader
+LightUploader
 *.toml
