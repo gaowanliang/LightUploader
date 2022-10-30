@@ -202,7 +202,7 @@ func botSend(botKey string, iuserID string, initText string) func(string) {
 	var messageId = int64(0)
 	resp, err := http.Get(fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage?chat_id=%s&parse_mode=MarkdownV2&text=%s", botKey, iuserID, url.QueryEscape(initText)))
 	if err != nil {
-		log.Panic(err)
+		log.Println(err)
 	}
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
@@ -215,7 +215,7 @@ func botSend(botKey string, iuserID string, initText string) func(string) {
 		messageId, _ = jsonparser.GetInt(body, "result", "message_id")
 	} else {
 		description, _ := jsonparser.GetString(body, "description")
-		log.Panicf(loc.print("telegramSendError"), description)
+		log.Println(loc.print("telegramSendError"), description)
 	}
 	return func(text string) {
 		if text[:5] == "close" && text[5] != '|' {
@@ -224,26 +224,26 @@ func botSend(botKey string, iuserID string, initText string) func(string) {
 			// close| 则不会删除消息
 			resp, err = http.Get(fmt.Sprintf("https://api.telegram.org/bot%s/deleteMessage?chat_id=%s&message_id=%d", botKey, iuserID, messageId))
 			if err != nil {
-				log.Panic(err)
+				log.Println(err)
 			}
 			defer resp.Body.Close()
 			return
 		}
 		resp, err = http.Get(fmt.Sprintf("https://api.telegram.org/bot%s/editMessageText?chat_id=%s&parse_mode=MarkdownV2&message_id=%d&text=%s", botKey, iuserID, messageId, url.QueryEscape(text)))
 		if err != nil {
-			log.Panic(err)
+			log.Println(err)
 		}
 		defer resp.Body.Close()
 		body, err = ioutil.ReadAll(resp.Body)
 		if err != nil {
-			log.Panic(err)
+			log.Println(err)
 		}
 		//fmt.Println(string(body))
 		ok, _ = jsonparser.GetBoolean(body, "ok")
 		if !ok {
 			description, _ := jsonparser.GetString(body, "description")
 			if !strings.Contains(string(body), "message is not modified") && !strings.Contains(string(body), "Too Many Requests") {
-				log.Panicf(loc.print("telegramSendError"), description)
+				log.Println(loc.print("telegramSendError"), description)
 			}
 		}
 
