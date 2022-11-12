@@ -3,14 +3,14 @@ package http
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/buger/jsonparser"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
 	"regexp"
 	"strings"
-
-	"github.com/buger/jsonparser"
+	"sync"
 )
 
 type Certificate struct {
@@ -30,6 +30,7 @@ var GraphURL = "https://graph.microsoft.com/v1.0/me/"
 var TokenURL = "https://login.microsoftonline.com/common/oauth2/v2.0/token"
 var Host = "login.microsoftonline.com"
 var isCN = false
+var mutex sync.Mutex
 
 func ChangeCNURL() {
 	GraphURL = "https://microsoftgraph.chinacloudapi.cn/v1.0/me/"
@@ -200,6 +201,7 @@ func getAccessToken(oauth2URL string, ms int, lang string) string {
 }
 
 func refreshAccessToken(path string, Thread int, BlockSize int, Language string, TimeOut int, BotKey string, UserID string) string {
+	mutex.Lock() //使用互斥锁防止线程数过高时信息被覆盖问题
 	filePtr, err := os.Open(path)
 	if err != nil {
 		log.Panicln(err)
@@ -260,6 +262,7 @@ func refreshAccessToken(path string, Thread int, BlockSize int, Language string,
 	// 创建Json编码器
 	encoder := json.NewEncoder(filePtr)
 	err = encoder.Encode(info)
+	defer mutex.Unlock()
 	if err != nil {
 		log.Panicln(err.Error())
 	}
